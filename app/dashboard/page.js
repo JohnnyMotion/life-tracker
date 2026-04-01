@@ -6,93 +6,178 @@ import {
   LineChart, Line, XAxis, YAxis, CartesianGrid,
   Tooltip, ResponsiveContainer, BarChart, Bar, Legend
 } from 'recharts'
+import {
+  PenLine, LayoutDashboard, ClipboardList,
+  Sparkles, Download, TrendingUp, Pill, Activity
+} from 'lucide-react'
+
+const PALETTE = {
+  happiness:        { line: '#34d399', glow: 'rgba(52,211,153,0.3)'   },
+  motivation:       { line: '#f59e0b', glow: 'rgba(245,158,11,0.3)'   },
+  focus:            { line: '#818cf8', glow: 'rgba(129,140,248,0.3)'  },
+  stress:           { line: '#f87171', glow: 'rgba(248,113,113,0.3)'  },
+  sleep_quality:    { line: '#60a5fa', glow: 'rgba(96,165,250,0.3)'   },
+  work_stress:      { line: '#fb923c', glow: 'rgba(251,146,60,0.3)'   },
+  wife_relationship:{ line: '#f472b6', glow: 'rgba(244,114,182,0.3)'  },
+  sleep_hours:      { line: '#a78bfa', glow: 'rgba(167,139,250,0.3)'  },
+}
 
 const METRICS = [
-  { key: 'happiness', label: 'Happiness', color: '#34d399' },
-  { key: 'motivation', label: 'Motivation', color: '#f59e0b' },
-  { key: 'focus', label: 'Focus', color: '#818cf8' },
-  { key: 'stress', label: 'Stress', color: '#f87171' },
-  { key: 'sleep_quality', label: 'Sleep Quality', color: '#60a5fa' },
-  { key: 'work_stress', label: 'Work Stress', color: '#fb923c' },
-  { key: 'wife_relationship', label: 'Relationship', color: '#f472b6' },
+  { key: 'happiness',         label: 'Happiness'     },
+  { key: 'motivation',        label: 'Motivation'    },
+  { key: 'focus',             label: 'Focus'         },
+  { key: 'stress',            label: 'Stress'        },
+  { key: 'sleep_quality',     label: 'Sleep Quality' },
+  { key: 'work_stress',       label: 'Work Stress'   },
+  { key: 'wife_relationship', label: 'Relationship'  },
 ]
 
 function average(arr) {
-  if (!arr.length) return 0
-  return (arr.reduce((a, b) => a + b, 0) / arr.length).toFixed(1)
+  const clean = arr.filter(v => v != null && !isNaN(v))
+  if (!clean.length) return 0
+  return (clean.reduce((a, b) => a + b, 0) / clean.length).toFixed(1)
 }
 
 function NavBar({ active }) {
   const links = [
-    { href: '/', label: 'Check-in', emoji: '✏️' },
-    { href: '/dashboard', label: 'Dashboard', emoji: '📊' },
-    { href: '/history', label: 'History', emoji: '📋' },
-    { href: '/insights', label: 'Insights', emoji: '🧠' },
-    { href: '/export', label: 'Export', emoji: '⬇️' },
+    { href: '/',          label: 'Log',       Icon: PenLine         },
+    { href: '/dashboard', label: 'Dashboard', Icon: LayoutDashboard },
+    { href: '/history',   label: 'History',   Icon: ClipboardList   },
+    { href: '/insights',  label: 'Insights',  Icon: Sparkles        },
+    { href: '/export',    label: 'Export',    Icon: Download        },
   ]
   return (
     <nav style={{
-      position: 'fixed',
-      bottom: 0, left: 0, right: 0,
-      background: 'rgba(15,15,20,0.95)',
-      borderTop: '1px solid rgba(255,255,255,0.08)',
-      display: 'flex',
-      justifyContent: 'space-around',
-      padding: '0.75rem 0 1.25rem',
-      backdropFilter: 'blur(20px)',
+      position: 'fixed', bottom: 0, left: 0, right: 0,
+      background: 'rgba(7,7,15,0.88)',
+      borderTop: '0.5px solid rgba(255,255,255,0.07)',
+      display: 'flex', justifyContent: 'space-around',
+      paddingTop: '10px',
+      paddingBottom: 'calc(10px + env(safe-area-inset-bottom, 16px))',
+      backdropFilter: 'blur(40px) saturate(1.8)',
+      WebkitBackdropFilter: 'blur(40px) saturate(1.8)',
       zIndex: 100,
     }}>
-      {links.map(link => (
-        <a key={link.href} href={link.href} style={{
-          display: 'flex', flexDirection: 'column',
-          alignItems: 'center', gap: '0.25rem',
-          color: active === link.href ? '#818cf8' : '#64748b',
-          textDecoration: 'none',
-        }}>
-          <span style={{ fontSize: '1.4rem' }}>{link.emoji}</span>
-          <span style={{ fontSize: '0.7rem', fontWeight: '600' }}>{link.label}</span>
-        </a>
-      ))}
+      {links.map(({ href, label, Icon }) => {
+        const isActive = active === href
+        return (
+          <a key={href} href={href} style={{
+            display: 'flex', flexDirection: 'column',
+            alignItems: 'center', gap: '4px',
+            textDecoration: 'none', minWidth: '44px',
+            color: isActive ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.25)',
+            transition: 'color 0.2s ease',
+            position: 'relative',
+          }}>
+            {isActive && (
+              <div style={{
+                position: 'absolute', top: '-10px',
+                left: '50%', transform: 'translateX(-50%)',
+                width: '28px', height: '2px',
+                background: 'linear-gradient(90deg, transparent, #818cf8, transparent)',
+                borderRadius: '99px',
+              }} />
+            )}
+            <Icon size={18} strokeWidth={isActive ? 1.75 : 1.5} />
+            <span style={{ fontSize: '9px', fontWeight: isActive ? '500' : '400', letterSpacing: '0.03em' }}>{label}</span>
+          </a>
+        )
+      })}
     </nav>
+  )
+}
+
+function GlassCard({ children, style = {} }) {
+  return (
+    <div style={{
+      background: 'linear-gradient(160deg, rgba(255,255,255,0.042) 0%, rgba(255,255,255,0.018) 100%)',
+      backdropFilter: 'blur(24px) saturate(1.4)',
+      WebkitBackdropFilter: 'blur(24px) saturate(1.4)',
+      borderRadius: '18px',
+      border: '1px solid rgba(255,255,255,0.07)',
+      position: 'relative', overflow: 'hidden',
+      boxShadow: '0 1px 2px rgba(0,0,0,0.35), 0 4px 16px rgba(0,0,0,0.2), 0 16px 48px rgba(0,0,0,0.1)',
+      ...style,
+    }}>
+      <div style={{
+        position: 'absolute', top: 0, left: 0, right: 0, height: '1px',
+        background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.12) 30%, rgba(255,255,255,0.05) 100%)',
+      }} />
+      <div style={{
+        position: 'absolute', top: 0, left: 0, width: '1px', height: '50%',
+        background: 'linear-gradient(180deg, rgba(255,255,255,0.12), transparent)',
+      }} />
+      {children}
+    </div>
   )
 }
 
 function StatCard({ label, value, color, subtitle }) {
   return (
+    <GlassCard style={{ flex: 1, minWidth: '130px', padding: '16px 14px' }}>
+      <div style={{
+        fontSize: '9px', fontWeight: '400',
+        color: 'rgba(255,255,255,0.25)',
+        textTransform: 'uppercase', letterSpacing: '0.08em',
+        marginBottom: '6px',
+      }}>{label}</div>
+      <div style={{
+        fontSize: '36px', fontWeight: '200',
+        color: color, letterSpacing: '-0.04em',
+        lineHeight: 1,
+        textShadow: `0 0 24px ${color}60`,
+        fontVariantNumeric: 'tabular-nums',
+      }}>{value}</div>
+      {subtitle && (
+        <div style={{
+          fontSize: '9px', fontWeight: '300',
+          color: 'rgba(255,255,255,0.2)',
+          marginTop: '4px', letterSpacing: '0.02em',
+        }}>{subtitle}</div>
+      )}
+    </GlassCard>
+  )
+}
+
+function SectionLabel({ title, Icon }) {
+  return (
     <div style={{
-      background: 'rgba(255,255,255,0.04)',
-      borderRadius: '16px',
-      padding: '1rem 1.25rem',
-      border: '1px solid rgba(255,255,255,0.06)',
-      flex: '1',
-      minWidth: '130px',
+      display: 'flex', alignItems: 'center', gap: '8px',
+      padding: '20px 0 10px',
     }}>
-      <div style={{ fontSize: '0.75rem', color: '#64748b', marginBottom: '0.4rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{label}</div>
-      <div style={{ fontSize: '1.8rem', fontWeight: '800', color: color }}>{value}</div>
-      {subtitle && <div style={{ fontSize: '0.75rem', color: '#475569', marginTop: '0.25rem' }}>{subtitle}</div>}
+      <Icon size={13} strokeWidth={1.5} color="rgba(255,255,255,0.3)" />
+      <span style={{
+        fontSize: '10px', fontWeight: '500',
+        color: 'rgba(255,255,255,0.28)',
+        textTransform: 'uppercase', letterSpacing: '0.1em',
+      }}>{title}</span>
+      <div style={{
+        flex: 1, height: '0.5px',
+        background: 'linear-gradient(to right, rgba(255,255,255,0.08), transparent)',
+      }} />
     </div>
   )
 }
 
 const CustomTooltip = ({ active, payload, label }) => {
-  if (active && payload && payload.length) {
-    return (
-      <div style={{
-        background: '#1e1e2e',
-        border: '1px solid rgba(255,255,255,0.1)',
-        borderRadius: '12px',
-        padding: '0.75rem 1rem',
-      }}>
-        <p style={{ color: '#64748b', fontSize: '0.8rem', marginBottom: '0.5rem' }}>{label}</p>
-        {payload.map(p => (
-          <p key={p.dataKey} style={{ color: p.color, fontSize: '0.9rem', fontWeight: '600' }}>
-            {p.name}: {p.value}
-          </p>
-        ))}
-      </div>
-    )
-  }
-  return null
+  if (!active || !payload?.length) return null
+  return (
+    <div style={{
+      background: 'rgba(7,7,15,0.92)',
+      backdropFilter: 'blur(20px)',
+      border: '1px solid rgba(255,255,255,0.08)',
+      borderRadius: '12px',
+      padding: '10px 14px',
+      boxShadow: '0 4px 24px rgba(0,0,0,0.4)',
+    }}>
+      <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: '10px', marginBottom: '6px', letterSpacing: '0.04em' }}>{label}</p>
+      {payload.map(p => (
+        <p key={p.dataKey} style={{ color: p.color, fontSize: '13px', fontWeight: '300', letterSpacing: '-0.01em' }}>
+          {p.name}: <span style={{ fontWeight: '500' }}>{p.value}</span>
+        </p>
+      ))}
+    </div>
+  )
 }
 
 export default function Dashboard() {
@@ -102,20 +187,17 @@ export default function Dashboard() {
   const [metricA, setMetricA] = useState('happiness')
   const [metricB, setMetricB] = useState('sleep_quality')
 
-  useEffect(() => {
-    fetchEntries()
-  }, [range])
+  useEffect(() => { fetchEntries() }, [range])
 
   async function fetchEntries() {
     setLoading(true)
     const from = new Date()
     from.setDate(from.getDate() - range)
-    const { data, error } = await supabase
-      .from('entries')
-      .select('*')
+    const { data } = await supabase
+      .from('entries').select('*')
       .gte('date', from.toISOString().split('T')[0])
       .order('date', { ascending: true })
-    if (!error) setEntries(data || [])
+    setEntries(data || [])
     setLoading(false)
   }
 
@@ -125,12 +207,12 @@ export default function Dashboard() {
   }))
 
   const last7 = entries.slice(-7)
-  const medsOn = entries.filter(e => e.adhd_meds)
+  const medsOn  = entries.filter(e => e.adhd_meds)
   const medsOff = entries.filter(e => !e.adhd_meds)
 
   const medsComparison = METRICS.slice(0, 4).map(m => ({
     metric: m.label,
-    'With Meds': Number(average(medsOn.map(e => e[m.key]))),
+    'With Meds':    Number(average(medsOn.map(e => e[m.key]))),
     'Without Meds': Number(average(medsOff.map(e => e[m.key]))),
   }))
 
@@ -143,140 +225,200 @@ export default function Dashboard() {
     return streak
   })()
 
+  const selectStyle = {
+    background: 'rgba(255,255,255,0.05)',
+    border: '1px solid rgba(255,255,255,0.08)',
+    borderRadius: '8px',
+    color: 'rgba(255,255,255,0.6)',
+    padding: '6px 10px',
+    fontSize: '11px',
+    fontWeight: '400',
+    cursor: 'pointer',
+    outline: 'none',
+    fontFamily: 'Inter, sans-serif',
+    letterSpacing: '0.01em',
+  }
+
   return (
     <main style={{
       minHeight: '100vh',
-      background: 'linear-gradient(135deg, #0f0f14 0%, #131320 50%, #0f0f14 100%)',
-      paddingBottom: '5rem',
+      background: `
+        radial-gradient(ellipse 90% 55% at 10% -5%, rgba(88,66,160,0.18) 0%, transparent 65%),
+        radial-gradient(ellipse 60% 40% at 90% 8%, rgba(20,50,120,0.13) 0%, transparent 65%),
+        #07070f
+      `,
+      paddingBottom: '7rem',
     }}>
+
       <div style={{
-        background: 'rgba(255,255,255,0.03)',
-        borderBottom: '1px solid rgba(255,255,255,0.06)',
-        padding: '1.5rem 1.5rem 1rem',
-        position: 'sticky', top: 0, zIndex: 10,
-        backdropFilter: 'blur(20px)',
+        padding: 'calc(3.5rem + env(safe-area-inset-top,0px)) 1.25rem 0',
+        display: 'flex', alignItems: 'flex-end',
+        justifyContent: 'space-between',
+        flexWrap: 'wrap', gap: '12px',
       }}>
-        <h1 style={{
-          fontSize: '1.5rem', fontWeight: '700',
-          background: 'linear-gradient(135deg, #34d399, #60a5fa)',
-          WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
-        }}>Dashboard</h1>
-        <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.75rem' }}>
+        <div>
+          <p style={{
+            fontSize: '10px', fontWeight: '400',
+            color: 'rgba(255,255,255,0.25)',
+            letterSpacing: '0.08em', textTransform: 'uppercase',
+            marginBottom: '6px',
+          }}>Overview</p>
+          <h1 style={{
+            fontSize: '28px', fontWeight: '300',
+            letterSpacing: '-0.04em',
+            color: 'rgba(255,255,255,0.88)',
+          }}>Dashboard</h1>
+        </div>
+
+        <div style={{ display: 'flex', gap: '4px', alignItems: 'center', paddingBottom: '4px' }}>
           {[7, 14, 30].map(r => (
             <button key={r} onClick={() => setRange(r)} style={{
-              padding: '0.35rem 0.9rem', borderRadius: '20px', border: 'none',
-              background: range === r ? 'rgba(129,140,248,0.3)' : 'rgba(255,255,255,0.06)',
-              color: range === r ? '#c7d2fe' : '#64748b',
-              fontSize: '0.85rem', fontWeight: '600', cursor: 'pointer',
+              padding: '5px 12px', borderRadius: '99px',
+              border: range === r ? '1px solid rgba(129,140,248,0.4)' : '1px solid rgba(255,255,255,0.07)',
+              background: range === r ? 'rgba(129,140,248,0.15)' : 'rgba(255,255,255,0.03)',
+              color: range === r ? 'rgba(196,181,253,0.9)' : 'rgba(255,255,255,0.28)',
+              fontSize: '11px', fontWeight: '400',
+              cursor: 'pointer', transition: 'all 0.2s ease',
+              letterSpacing: '0.02em',
             }}>{r}d</button>
           ))}
         </div>
       </div>
 
-      <div style={{ padding: '1.5rem', maxWidth: '780px', margin: '0 auto' }}>
+      <div style={{ padding: '0 1.1rem', maxWidth: '780px', margin: '0 auto' }}>
         {loading ? (
-          <div style={{ textAlign: 'center', color: '#475569', padding: '3rem' }}>Loading...</div>
+          <div style={{ textAlign: 'center', color: 'rgba(255,255,255,0.2)', padding: '4rem', fontSize: '13px', fontWeight: '300' }}>Loading…</div>
         ) : entries.length === 0 ? (
-          <div style={{ textAlign: 'center', color: '#475569', padding: '3rem' }}>No entries yet.</div>
+          <div style={{ textAlign: 'center', color: 'rgba(255,255,255,0.2)', padding: '4rem', fontSize: '13px', fontWeight: '300' }}>No entries yet.</div>
         ) : (
           <>
-            <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
-              <StatCard label="Avg Happiness" value={average(last7.map(e => e.happiness))} color="#34d399" subtitle="Last 7 days" />
-              <StatCard label="Avg Focus" value={average(last7.map(e => e.focus))} color="#818cf8" subtitle="Last 7 days" />
-              <StatCard label="Avg Sleep" value={average(last7.map(e => e.sleep_hours)) + 'h'} color="#60a5fa" subtitle="Last 7 days" />
-              <StatCard label="Exercise Streak" value={exerciseStreak} color="#f59e0b" subtitle={exerciseStreak === 1 ? 'day' : 'days'} />
+            <SectionLabel title="Last 7 Days" Icon={Activity} />
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '4px' }}>
+              <StatCard label="Avg Happiness" value={average(last7.map(e => e.happiness))}        color={PALETTE.happiness.line}   subtitle="happiness" />
+              <StatCard label="Avg Focus"     value={average(last7.map(e => e.focus))}             color={PALETTE.focus.line}       subtitle="focus"     />
+              <StatCard label="Avg Sleep"     value={average(last7.map(e => e.sleep_hours)) + 'h'} color={PALETTE.sleep_hours.line} subtitle="sleep"     />
+              <StatCard label="Streak"        value={exerciseStreak}                                color={PALETTE.motivation.line}  subtitle={exerciseStreak === 1 ? 'day active' : 'days active'} />
             </div>
 
-            <div style={{
-              background: 'rgba(255,255,255,0.04)', borderRadius: '20px',
-              padding: '1.25rem', marginBottom: '1rem',
-              border: '1px solid rgba(255,255,255,0.06)',
-            }}>
-              <h2 style={{ fontSize: '0.9rem', fontWeight: '700', color: '#94a3b8', marginBottom: '0.5rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                📈 Trends
-              </h2>
-              <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
-                {['A', 'B'].map((slot, i) => {
+            <SectionLabel title="Trends" Icon={TrendingUp} />
+            <GlassCard style={{ padding: '20px 16px 12px', marginBottom: '4px' }}>
+              <div style={{ display: 'flex', gap: '6px', marginBottom: '16px', flexWrap: 'wrap' }}>
+                {[0, 1].map(i => {
                   const current = i === 0 ? metricA : metricB
-                  const setter = i === 0 ? setMetricA : setMetricB
+                  const setter  = i === 0 ? setMetricA : setMetricB
                   return (
-                    <select key={slot} value={current} onChange={e => setter(e.target.value)} style={{
-                      background: 'rgba(255,255,255,0.06)',
-                      border: '1px solid rgba(255,255,255,0.1)',
-                      borderRadius: '8px', color: '#e2e8f0',
-                      padding: '0.4rem 0.75rem', fontSize: '0.85rem', cursor: 'pointer',
-                    }}>
+                    <select key={i} value={current} onChange={e => setter(e.target.value)} style={selectStyle}>
                       {METRICS.map(m => (
-                        <option key={m.key} value={m.key} style={{ background: '#1e1e2e' }}>{m.label}</option>
+                        <option key={m.key} value={m.key} style={{ background: '#07070f' }}>{m.label}</option>
                       ))}
                     </select>
                   )
                 })}
               </div>
-              <ResponsiveContainer width="100%" height={220}>
+              <ResponsiveContainer width="100%" height={200}>
                 <LineChart data={chartData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-                  <XAxis dataKey="day" tick={{ fill: '#475569', fontSize: 11 }} axisLine={false} tickLine={false} />
-                  <YAxis domain={[0, 10]} tick={{ fill: '#475569', fontSize: 11 }} axisLine={false} tickLine={false} />
+                  <defs>
+                    <filter id="glow-a">
+                      <feGaussianBlur stdDeviation="2" result="blur" />
+                      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+                    </filter>
+                    <filter id="glow-b">
+                      <feGaussianBlur stdDeviation="2" result="blur" />
+                      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+                    </filter>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" vertical={false} />
+                  <XAxis dataKey="day" tick={{ fill: 'rgba(255,255,255,0.2)', fontSize: 9, fontFamily: 'Inter' }} axisLine={false} tickLine={false} />
+                  <YAxis domain={[0, 10]} tick={{ fill: 'rgba(255,255,255,0.2)', fontSize: 9, fontFamily: 'Inter' }} axisLine={false} tickLine={false} width={20} />
                   <Tooltip content={<CustomTooltip />} />
-                  <Line type="monotone" dataKey={metricA} name={METRICS.find(m => m.key === metricA)?.label} stroke={METRICS.find(m => m.key === metricA)?.color} strokeWidth={2.5} dot={{ r: 3 }} activeDot={{ r: 5 }} />
-                  <Line type="monotone" dataKey={metricB} name={METRICS.find(m => m.key === metricB)?.label} stroke={METRICS.find(m => m.key === metricB)?.color} strokeWidth={2.5} dot={{ r: 3 }} activeDot={{ r: 5 }} />
+                  <Line type="monotone" dataKey={metricA}
+                    name={METRICS.find(m => m.key === metricA)?.label}
+                    stroke={PALETTE[metricA]?.line || '#818cf8'}
+                    strokeWidth={1.5} dot={false}
+                    activeDot={{ r: 4, strokeWidth: 0, fill: PALETTE[metricA]?.line }}
+                    filter="url(#glow-a)"
+                  />
+                  <Line type="monotone" dataKey={metricB}
+                    name={METRICS.find(m => m.key === metricB)?.label}
+                    stroke={PALETTE[metricB]?.line || '#60a5fa'}
+                    strokeWidth={1.5} dot={false}
+                    activeDot={{ r: 4, strokeWidth: 0, fill: PALETTE[metricB]?.line }}
+                    filter="url(#glow-b)"
+                    strokeDasharray="4 2"
+                  />
                 </LineChart>
               </ResponsiveContainer>
-            </div>
+            </GlassCard>
 
             {medsOn.length > 0 && medsOff.length > 0 && (
-              <div style={{
-                background: 'rgba(255,255,255,0.04)', borderRadius: '20px',
-                padding: '1.25rem', marginBottom: '1rem',
-                border: '1px solid rgba(255,255,255,0.06)',
-              }}>
-                <h2 style={{ fontSize: '0.9rem', fontWeight: '700', color: '#94a3b8', marginBottom: '1rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                  💊 Meds Days vs No-Meds Days
-                </h2>
-                <ResponsiveContainer width="100%" height={200}>
-                  <BarChart data={medsComparison} barGap={4}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-                    <XAxis dataKey="metric" tick={{ fill: '#475569', fontSize: 10 }} axisLine={false} tickLine={false} />
-                    <YAxis domain={[0, 10]} tick={{ fill: '#475569', fontSize: 11 }} axisLine={false} tickLine={false} />
-                    <Tooltip content={<CustomTooltip />} />
-                    <Legend wrapperStyle={{ color: '#94a3b8', fontSize: '0.8rem' }} />
-                    <Bar dataKey="With Meds" fill="#818cf8" radius={[4, 4, 0, 0]} />
-                    <Bar dataKey="Without Meds" fill="#475569" radius={[4, 4, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
+              <>
+                <SectionLabel title="Meds Days vs No-Meds" Icon={Pill} />
+                <GlassCard style={{ padding: '20px 16px 12px', marginBottom: '4px' }}>
+                  <ResponsiveContainer width="100%" height={180}>
+                    <BarChart
+                      data={medsComparison}
+                      barGap={3}
+                      barCategoryGap="35%"
+                    >
+                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" vertical={false} />
+                      <XAxis dataKey="metric" tick={{ fill: 'rgba(255,255,255,0.2)', fontSize: 9, fontFamily: 'Inter' }} axisLine={false} tickLine={false} />
+                      <YAxis domain={[0, 10]} tick={{ fill: 'rgba(255,255,255,0.2)', fontSize: 9, fontFamily: 'Inter' }} axisLine={false} tickLine={false} width={20} />
+                      <Tooltip
+                        content={<CustomTooltip />}
+                        cursor={{ fill: 'rgba(255,255,255,0.04)' }}
+                      />
+                      <Legend wrapperStyle={{ color: 'rgba(255,255,255,0.3)', fontSize: '10px', fontFamily: 'Inter', paddingTop: '12px' }} />
+                      <Bar dataKey="With Meds"    fill="#818cf8" radius={[4,4,0,0]} opacity={0.9} />
+                      <Bar dataKey="Without Meds" fill="#64748b" radius={[4,4,0,0]} opacity={0.75} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </GlassCard>
+              </>
             )}
 
-            <div style={{
-              background: 'rgba(255,255,255,0.04)', borderRadius: '20px',
-              padding: '1.25rem', border: '1px solid rgba(255,255,255,0.06)',
-            }}>
-              <h2 style={{ fontSize: '0.9rem', fontWeight: '700', color: '#94a3b8', marginBottom: '1rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                📊 {range}-Day Averages
-              </h2>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+            <SectionLabel title={`${range}-Day Averages`} Icon={Activity} />
+            <GlassCard style={{ padding: '20px 18px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                 {METRICS.map(m => {
                   const avg = Number(average(entries.map(e => e[m.key]).filter(Boolean)))
                   const pct = (avg / 10) * 100
+                  const pal = PALETTE[m.key]
                   return (
                     <div key={m.key}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.3rem' }}>
-                        <span style={{ fontSize: '0.85rem', color: '#94a3b8' }}>{m.label}</span>
-                        <span style={{ fontSize: '0.85rem', fontWeight: '700', color: m.color }}>{avg}</span>
+                      <div style={{
+                        display: 'flex', justifyContent: 'space-between',
+                        alignItems: 'flex-end', marginBottom: '7px',
+                      }}>
+                        <span style={{
+                          fontSize: '11px', fontWeight: '400',
+                          color: 'rgba(255,255,255,0.35)',
+                          textTransform: 'uppercase', letterSpacing: '0.05em',
+                        }}>{m.label}</span>
+                        <span style={{
+                          fontSize: '22px', fontWeight: '200',
+                          color: pal.line, letterSpacing: '-0.04em',
+                          lineHeight: 1,
+                          textShadow: `0 0 16px ${pal.glow}`,
+                          fontVariantNumeric: 'tabular-nums',
+                        }}>{avg}</span>
                       </div>
-                      <div style={{ background: 'rgba(255,255,255,0.06)', borderRadius: '99px', height: '6px' }}>
+                      <div style={{
+                        background: 'rgba(255,255,255,0.05)',
+                        borderRadius: '99px', height: '3px', overflow: 'hidden',
+                      }}>
                         <div style={{
-                          background: m.color, width: `${pct}%`,
-                          height: '100%', borderRadius: '99px',
-                          transition: 'width 0.5s ease',
+                          background: `linear-gradient(90deg, ${pal.line}, ${pal.line}99)`,
+                          width: `${pct}%`, height: '100%',
+                          borderRadius: '99px',
+                          boxShadow: `0 0 8px ${pal.glow}`,
+                          transition: 'width 0.6s ease',
                         }} />
                       </div>
                     </div>
                   )
                 })}
               </div>
-            </div>
+            </GlassCard>
           </>
         )}
       </div>

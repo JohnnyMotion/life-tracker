@@ -2,16 +2,137 @@
 @tailwind components;
 @tailwind utilities;
 
-* {
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap');
+
+*, *::before, *::after {
   box-sizing: border-box;
   padding: 0;
   margin: 0;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-html,
-body {
-  max-width: 100vw;
+:root {
+  --glass-bg: rgba(255, 255, 255, 0.038);
+  --glass-bg-raised: rgba(255, 255, 255, 0.055);
+  --glass-border: rgba(255, 255, 255, 0.075);
+  --glass-border-top: rgba(255, 255, 255, 0.14);
+  --glass-shadow-1: 0 1px 2px rgba(0, 0, 0, 0.35);
+  --glass-shadow-2: 0 4px 16px rgba(0, 0, 0, 0.25);
+  --glass-shadow-3: 0 16px 48px rgba(0, 0, 0, 0.15);
+  --glass-shadow: var(--glass-shadow-1), var(--glass-shadow-2), var(--glass-shadow-3);
+  --text-primary: rgba(255, 255, 255, 0.92);
+  --text-secondary: rgba(255, 255, 255, 0.45);
+  --text-tertiary: rgba(255, 255, 255, 0.22);
+  --accent: #7c6fcd;
+  --bg-deep: #07070f;
+}
+
+html, body {
   min-height: 100vh;
-  background-color: #0f0f14;
-  color: #ffffff;
+  background: var(--bg-deep);
+  color: var(--text-primary);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 1.5;
+}
+
+/* Scrollbar hidden */
+::-webkit-scrollbar { width: 0; }
+
+/* Safe area */
+.safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* ── Glass card ── */
+.glass-card {
+  position: relative;
+  background:
+    linear-gradient(
+      160deg,
+      rgba(255,255,255,0.055) 0%,
+      rgba(255,255,255,0.025) 100%
+    );
+  backdrop-filter: blur(24px) saturate(1.4);
+  -webkit-backdrop-filter: blur(24px) saturate(1.4);
+  border-radius: 18px;
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow);
+  overflow: hidden;
+}
+
+/* Top-edge light catch */
+.glass-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(
+    180deg,
+    rgba(255,255,255,0.07) 0%,
+    rgba(255,255,255,0.00) 40%
+  );
+  pointer-events: none;
+}
+
+/* Left-edge highlight (top-left light source) */
+.glass-card::after {
+  content: '';
+  position: absolute;
+  top: 0; left: 0;
+  width: 1px;
+  height: 60%;
+  background: linear-gradient(
+    180deg,
+    rgba(255,255,255,0.18) 0%,
+    rgba(255,255,255,0.00) 100%
+  );
+  pointer-events: none;
+}
+
+/* ── Slider ── */
+input[type='range'] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 5px;
+  border-radius: 99px;
+  outline: none;
+  cursor: pointer;
+  background: rgba(255,255,255,0.08);
+}
+
+input[type='range']::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: linear-gradient(145deg, #ffffff, #d4d4d8);
+  box-shadow:
+    0 1px 3px rgba(0,0,0,0.45),
+    0 3px 8px rgba(0,0,0,0.3),
+    inset 0 1px 0 rgba(255,255,255,0.9);
+  cursor: grab;
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+
+input[type='range']::-webkit-slider-thumb:active {
+  cursor: grabbing;
+  transform: scale(1.12);
+  box-shadow:
+    0 2px 6px rgba(0,0,0,0.5),
+    0 6px 20px rgba(0,0,0,0.35),
+    inset 0 1px 0 rgba(255,255,255,0.9);
+}
+
+input[type='range']::-moz-range-thumb {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: linear-gradient(145deg, #ffffff, #d4d4d8);
+  border: none;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.45), 0 3px 8px rgba(0,0,0,0.3);
+  cursor: grab;
 }
