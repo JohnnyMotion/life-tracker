@@ -4,17 +4,21 @@ import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 
 const FIELDS = [
-  { key: 'sleep_hours', label: 'Sleep Hours', min: 0, max: 12, type: 'slider' },
-  { key: 'sleep_quality', label: 'Sleep Quality', min: 1, max: 10, type: 'slider' },
-  { key: 'adhd_meds', label: 'ADHD Meds', type: 'toggle', emoji: '💊' },
-  { key: 'caffeine_level', label: 'Caffeine Level', min: 0, max: 5, type: 'slider' },
-  { key: 'exercise', label: 'Exercised', type: 'toggle', emoji: '🏃' },
-  { key: 'happiness', label: 'Happiness', min: 1, max: 10, type: 'slider' },
-  { key: 'motivation', label: 'Motivation', min: 1, max: 10, type: 'slider' },
-  { key: 'focus', label: 'Focus', min: 1, max: 10, type: 'slider' },
-  { key: 'stress', label: 'Stress', min: 1, max: 10, type: 'slider' },
-  { key: 'wife_relationship', label: 'Relationship', min: 1, max: 10, type: 'slider' },
-  { key: 'work_stress', label: 'Work Stress', min: 1, max: 10, type: 'slider' },
+  { key: 'sleep_hours',      label: 'Sleep Hours',     min: 0,  max: 12, type: 'slider' },
+  { key: 'sleep_quality',    label: 'Sleep Quality',   min: 1,  max: 10, type: 'slider' },
+  { key: 'adhd_meds',        label: 'ADHD Meds',       type: 'toggle', emoji: '💊' },
+  { key: 'mindfulness',      label: 'Mindfulness',     type: 'toggle', emoji: '🌬️' },
+  { key: 'morning_quality',  label: 'Morning Quality', min: 1,  max: 10, type: 'slider' },
+  { key: 'caffeine_level',   label: 'Caffeine',        min: 0,  max: 5,  type: 'slider' },
+  { key: 'exercise_level',   label: 'Exercise',        min: 0,  max: 3,  type: 'slider' },
+  { key: 'focus',            label: 'Focus',           min: 1,  max: 10, type: 'slider' },
+  { key: 'motivation',       label: 'Motivation',      min: 1,  max: 10, type: 'slider' },
+  { key: 'happiness',        label: 'Happiness',       min: 1,  max: 10, type: 'slider' },
+  { key: 'stress',           label: 'Stress',          min: 1,  max: 10, type: 'slider' },
+  { key: 'brain_rot',        label: 'BrainRot',        min: 0,  max: 8,  type: 'slider' },
+  { key: 'alcohol',          label: 'Alcohol',         min: 0,  max: 5,  type: 'slider' },
+  { key: 'work_stress',      label: 'Work Stress',     min: 1,  max: 10, type: 'slider' },
+  { key: 'wife_relationship',label: 'Relationship',    min: 1,  max: 10, type: 'slider' },
 ]
 
 const COLORS = {

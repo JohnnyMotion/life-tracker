@@ -1,12 +1,12 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { supabase } from './lib/supabase'
 import {
   Pill, Moon, Zap, Heart, Briefcase,
   NotebookPen, LayoutDashboard, ClipboardList,
   Sparkles, Download, PenLine, Wind,
-  Sunrise, Dumbbell, ChevronRight, Flame, TrendingUp
+  Sunrise, Dumbbell, ChevronRight, TrendingUp, TrendingDown, Minus, Brain
 } from 'lucide-react'
 
 const DEFAULT_FORM = {
@@ -25,6 +25,7 @@ const DEFAULT_FORM = {
   work_stress: 5,
   morning_quality: 7,
   alcohol: 0,
+  brain_rot: 0,
   note: '',
 }
 
@@ -41,14 +42,14 @@ const PALETTE = {
   morning_quality:   { line: '#fcd34d', glow: 'rgba(252,211,77,0.3)'  },
   alcohol:           { line: '#c084fc', glow: 'rgba(192,132,252,0.3)' },
   exercise_level:    { line: '#34d399', glow: 'rgba(52,211,153,0.3)'  },
+  brain_rot:         { line: '#f87171', glow: 'rgba(248,113,113,0.3)' },
 }
 
 const EXERCISE_LABELS = ['Sedentary', 'Light', 'Moderate', 'Full workout']
-
 const SLIDER_FIELDS = [
   'sleep_hours','sleep_quality','caffeine_level','focus','motivation',
   'happiness','stress','work_stress','wife_relationship',
-  'morning_quality','alcohol','exercise_level'
+  'morning_quality','alcohol','exercise_level','brain_rot'
 ]
 
 function NavBar({ active }) {
@@ -99,92 +100,66 @@ function NavBar({ active }) {
   )
 }
 
-function BriefingStrip({ todayEntry, recentEntries, lastInsight, exerciseStreak }) {
-  const avg = (key) => {
-    const vals = recentEntries.map(e => e[key]).filter(v => v != null)
-    if (!vals.length) return null
-    return (vals.reduce((a, b) => a + b, 0) / vals.length).toFixed(1)
-  }
+function BriefingStrip({ recentEntries, lastInsight, whatsHot, exerciseStreak }) {
+  const TrendIcon = whatsHot?.trend === 'up' ? TrendingUp
+    : whatsHot?.trend === 'down' ? TrendingDown : Minus
+  const trendColor = whatsHot?.trend === 'up' ? '#34d399'
+    : whatsHot?.trend === 'down' ? '#f87171' : '#818cf8'
 
   const cards = [
-    {
-      key: 'status',
-      content: (
-        <div style={{ padding: '14px 16px' }}>
-          <div style={{ fontSize: '9px', color: 'rgba(255,255,255,0.25)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '6px' }}>Today</div>
-          <div style={{ fontSize: '22px', fontWeight: '200', color: 'rgba(255,255,255,0.8)', letterSpacing: '-0.04em', lineHeight: 1 }}>
-            {todayEntry ? 'In progress' : 'Not started'}
-          </div>
-          <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.25)', marginTop: '4px' }}>
-            {todayEntry ? 'Tap to continue' : 'Log your day below'}
-          </div>
-        </div>
-      )
-    },
-    exerciseStreak > 1 && {
-      key: 'streak',
-      content: (
-        <div style={{ padding: '14px 16px' }}>
-          <div style={{ fontSize: '9px', color: 'rgba(255,255,255,0.25)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '6px' }}>Streak</div>
-          <div style={{ display: 'flex', alignItems: 'flex-end', gap: '4px' }}>
-            <div style={{ fontSize: '36px', fontWeight: '200', color: '#f59e0b', letterSpacing: '-0.04em', lineHeight: 1, textShadow: '0 0 20px rgba(245,158,11,0.4)' }}>{exerciseStreak}</div>
-            <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.3)', paddingBottom: '4px' }}>days active</div>
-          </div>
-        </div>
-      )
-    },
-    recentEntries.length >= 3 && {
-      key: 'week',
-      content: (
-        <div style={{ padding: '14px 16px' }}>
-          <div style={{ fontSize: '9px', color: 'rgba(255,255,255,0.25)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '8px' }}>7-Day Avg</div>
-          <div style={{ display: 'flex', gap: '12px' }}>
-            {[
-              { label: 'Mood',  key: 'happiness',  color: '#34d399' },
-              { label: 'Focus', key: 'focus',       color: '#818cf8' },
-              { label: 'Sleep', key: 'sleep_hours', color: '#60a5fa' },
-            ].map(m => (
-              <div key={m.key} style={{ textAlign: 'center' }}>
-                <div style={{ fontSize: '22px', fontWeight: '200', color: m.color, letterSpacing: '-0.04em', lineHeight: 1, textShadow: `0 0 16px ${m.color}60` }}>{avg(m.key) || '—'}</div>
-                <div style={{ fontSize: '8px', color: 'rgba(255,255,255,0.2)', textTransform: 'uppercase', letterSpacing: '0.05em', marginTop: '2px' }}>{m.label}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )
-    },
     lastInsight && {
       key: 'insight',
+      width: '260px',
       content: (
-        <div style={{ padding: '14px 16px', maxWidth: '220px' }}>
-          <div style={{ fontSize: '9px', color: 'rgba(255,255,255,0.25)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '6px' }}>Latest Insight</div>
-          <div style={{ fontSize: '12px', fontWeight: '300', color: 'rgba(255,255,255,0.6)', lineHeight: 1.5, letterSpacing: '-0.01em' }}>"{lastInsight}"</div>
-        </div>
-      )
-    },
-    {
-      key: 'cta',
-      content: (
-        <a href="/insights" style={{
-          padding: '14px 16px', textDecoration: 'none',
-          display: 'flex', flexDirection: 'column', justifyContent: 'center',
-          height: '100%',
-        }}>
-          <div style={{ fontSize: '9px', color: 'rgba(255,255,255,0.25)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '6px' }}>AI Insights</div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-            <span style={{ fontSize: '12px', fontWeight: '400', color: '#818cf8' }}>View full report</span>
-            <ChevronRight size={12} color="#818cf8" />
+        <a href="/insights" style={{ textDecoration: 'none', display: 'block', padding: '14px 16px', height: '100%' }}>
+          <div style={{ fontSize: '9px', color: 'rgba(255,255,255,0.25)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '8px' }}>Latest Insight</div>
+          <div style={{ fontSize: '13px', fontWeight: '300', color: 'rgba(255,255,255,0.7)', lineHeight: 1.55, letterSpacing: '-0.01em' }}>"{lastInsight}"</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginTop: '8px' }}>
+            <span style={{ fontSize: '10px', color: '#818cf8' }}>Full report</span>
+            <ChevronRight size={10} color="#818cf8" />
           </div>
         </a>
       )
     },
+    exerciseStreak > 0 && {
+      key: 'streak',
+      width: '140px',
+      content: (
+        <div style={{ padding: '14px 16px' }}>
+          <div style={{ fontSize: '9px', color: 'rgba(255,255,255,0.25)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '6px' }}>Exercise</div>
+          <div style={{ display: 'flex', alignItems: 'flex-end', gap: '4px' }}>
+            <div style={{ fontSize: '36px', fontWeight: '200', color: '#f59e0b', letterSpacing: '-0.04em', lineHeight: 1, textShadow: '0 0 20px rgba(245,158,11,0.4)' }}>{exerciseStreak}</div>
+            <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.25)', paddingBottom: '4px' }}>day streak</div>
+          </div>
+        </div>
+      )
+    },
+    whatsHot && {
+      key: 'whatshot',
+      width: '160px',
+      content: (
+        <div style={{ padding: '14px 16px' }}>
+          <div style={{ fontSize: '9px', color: 'rgba(255,255,255,0.25)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '6px' }}>What's Hot</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '5px', marginBottom: '4px' }}>
+            <TrendIcon size={14} color={trendColor} strokeWidth={1.5} />
+            <span style={{ fontSize: '11px', fontWeight: '500', color: trendColor }}>{whatsHot.metric}</span>
+          </div>
+          <div style={{ fontSize: '13px', fontWeight: '300', color: 'rgba(255,255,255,0.6)', lineHeight: 1.4, letterSpacing: '-0.01em' }}>{whatsHot.headline}</div>
+          {whatsHot.value && (
+            <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.2)', marginTop: '4px' }}>{whatsHot.value}</div>
+          )}
+        </div>
+      )
+    },
   ].filter(Boolean)
+
+  if (!cards.length) return null
 
   return (
     <div style={{
       overflowX: 'auto', overflowY: 'hidden',
       display: 'flex', gap: '8px',
-      padding: '0 1.1rem 0',
+      padding: '0 1.1rem',
       marginBottom: '8px',
       scrollbarWidth: 'none',
       WebkitOverflowScrolling: 'touch',
@@ -192,8 +167,8 @@ function BriefingStrip({ todayEntry, recentEntries, lastInsight, exerciseStreak 
       {cards.map(card => (
         <div key={card.key} style={{
           flexShrink: 0,
-          minWidth: '140px',
-          height: '90px',
+          width: card.width,
+          minHeight: '90px',
           background: 'linear-gradient(160deg, rgba(255,255,255,0.042) 0%, rgba(255,255,255,0.018) 100%)',
           backdropFilter: 'blur(24px) saturate(1.4)',
           WebkitBackdropFilter: 'blur(24px) saturate(1.4)',
@@ -217,20 +192,12 @@ function BriefingStrip({ todayEntry, recentEntries, lastInsight, exerciseStreak 
 function MetricSlider({ label, name, value, onChange, min = 1, max = 10, customLabel, touched }) {
   const pal = PALETTE[name] || { line: '#818cf8', glow: 'rgba(129,140,248,0.3)' }
   const pct = ((value - min) / (max - min)) * 100
-  const track = `linear-gradient(to right,
-    ${pal.line} 0%, ${pal.line} ${pct}%,
-    rgba(255,255,255,0.07) ${pct}%, rgba(255,255,255,0.07) 100%
-  )`
-  const displayValue = customLabel
-    ? customLabel(value)
-    : name === 'sleep_hours' ? `${value}h` : value
+  const track = `linear-gradient(to right, ${pal.line} 0%, ${pal.line} ${pct}%, rgba(255,255,255,0.07) ${pct}%, rgba(255,255,255,0.07) 100%)`
+  const displayValue = customLabel ? customLabel(value) : name === 'sleep_hours' ? `${value}h` : value
 
   return (
     <div style={{ marginBottom: '1.6rem' }}>
-      <div style={{
-        display: 'flex', justifyContent: 'space-between',
-        alignItems: 'flex-end', marginBottom: '10px',
-      }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '10px' }}>
         <span style={{
           fontSize: '11px', fontWeight: '400',
           color: touched ? 'rgba(255,255,255,0.7)' : 'rgba(255,255,255,0.28)',
@@ -239,24 +206,20 @@ function MetricSlider({ label, name, value, onChange, min = 1, max = 10, customL
         }}>{label}</span>
         <span style={{
           fontSize: customLabel ? '16px' : '36px',
-          fontWeight: '200',
-          color: touched ? pal.line : `${pal.line}88`,
+          fontWeight: '200', color: touched ? pal.line : `${pal.line}88`,
           letterSpacing: '-0.04em', lineHeight: 1,
           textShadow: touched ? `0 0 30px ${pal.glow}` : 'none',
-          transition: 'all 0.3s ease',
-          fontVariantNumeric: 'tabular-nums',
+          transition: 'all 0.3s ease', fontVariantNumeric: 'tabular-nums',
         }}>{displayValue}</span>
       </div>
       <input
-        type="range" min={min} max={max} step="1"
-        value={value}
+        type="range" min={min} max={max} step="1" value={value}
         onChange={e => onChange(name, Number(e.target.value))}
         style={{
           width: '100%', height: '6px', borderRadius: '99px',
           outline: 'none', cursor: 'pointer', background: track,
           WebkitAppearance: 'none', appearance: 'none',
-          opacity: touched ? 1 : 0.6,
-          transition: 'opacity 0.3s ease',
+          opacity: touched ? 1 : 0.6, transition: 'opacity 0.3s ease',
         }}
       />
       <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '4px' }}>
@@ -316,38 +279,21 @@ function Toggle({ label, name, value, onChange, Icon }) {
 function Section({ title, accent, Icon, children }) {
   return (
     <div style={{ marginBottom: '6px' }}>
-      <div style={{
-        display: 'flex', alignItems: 'center', gap: '8px',
-        padding: '20px 0 12px',
-      }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '20px 0 12px' }}>
         <Icon size={13} strokeWidth={1.5} color={accent} style={{ opacity: 0.7 }} />
-        <span style={{
-          fontSize: '10px', fontWeight: '500',
-          color: accent, opacity: 0.65,
-          textTransform: 'uppercase', letterSpacing: '0.1em',
-        }}>{title}</span>
-        <div style={{
-          flex: 1, height: '0.5px',
-          background: `linear-gradient(to right, ${accent}30, transparent)`,
-        }} />
+        <span style={{ fontSize: '10px', fontWeight: '500', color: accent, opacity: 0.65, textTransform: 'uppercase', letterSpacing: '0.1em' }}>{title}</span>
+        <div style={{ flex: 1, height: '0.5px', background: `linear-gradient(to right, ${accent}30, transparent)` }} />
       </div>
       <div style={{
         background: 'linear-gradient(160deg, rgba(255,255,255,0.042) 0%, rgba(255,255,255,0.018) 100%)',
-        backdropFilter: 'blur(24px) saturate(1.4)',
-        WebkitBackdropFilter: 'blur(24px) saturate(1.4)',
+        backdropFilter: 'blur(24px) saturate(1.4)', WebkitBackdropFilter: 'blur(24px) saturate(1.4)',
         borderRadius: '18px', padding: '20px 18px 8px',
         border: '1px solid rgba(255,255,255,0.07)',
         position: 'relative', overflow: 'hidden',
         boxShadow: '0 1px 2px rgba(0,0,0,0.35), 0 4px 16px rgba(0,0,0,0.2), 0 16px 48px rgba(0,0,0,0.1)',
       }}>
-        <div style={{
-          position: 'absolute', top: 0, left: 0, right: 0, height: '1px',
-          background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.12) 30%, rgba(255,255,255,0.05) 100%)',
-        }} />
-        <div style={{
-          position: 'absolute', top: 0, left: 0, width: '1px', height: '50%',
-          background: 'linear-gradient(180deg, rgba(255,255,255,0.12), transparent)',
-        }} />
+        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '1px', background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.12) 30%, rgba(255,255,255,0.05) 100%)' }} />
+        <div style={{ position: 'absolute', top: 0, left: 0, width: '1px', height: '50%', background: 'linear-gradient(180deg, rgba(255,255,255,0.12), transparent)' }} />
         {children}
       </div>
     </div>
@@ -355,14 +301,15 @@ function Section({ title, accent, Icon, children }) {
 }
 
 export default function Home() {
-  const [form, setForm]       = useState({ ...DEFAULT_FORM })
-  const [touched, setTouched] = useState({})
-  const [saving, setSaving]   = useState(false)
-  const [saved, setSaved]     = useState(false)
-  const [error, setError]     = useState(null)
-  const [todayEntry, setTodayEntry]       = useState(null)
+  const [form, setForm]             = useState({ ...DEFAULT_FORM })
+  const [touched, setTouched]       = useState({})
+  const [saving, setSaving]         = useState(false)
+  const [saved, setSaved]           = useState(false)
+  const [error, setError]           = useState(null)
+  const [todayEntry, setTodayEntry] = useState(null)
   const [recentEntries, setRecentEntries] = useState([])
   const [lastInsight, setLastInsight]     = useState(null)
+  const [whatsHot, setWhatsHot]           = useState(null)
   const [lastSavedTime, setLastSavedTime] = useState(null)
 
   useEffect(() => {
@@ -372,15 +319,14 @@ export default function Home() {
 
   async function fetchToday() {
     const today = new Date().toISOString().split('T')[0]
-    const { data } = await supabase
-      .from('entries').select('*').eq('date', today).single()
+    const { data } = await supabase.from('entries').select('*').eq('date', today).single()
     if (data) {
       setTodayEntry(data)
       setForm(data)
       setLastSavedTime(new Date(data.created_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }))
-      const touchedFields = {}
-      SLIDER_FIELDS.forEach(f => { touchedFields[f] = true })
-      setTouched(touchedFields)
+      const t = {}
+      SLIDER_FIELDS.forEach(f => { t[f] = true })
+      setTouched(t)
     }
   }
 
@@ -393,19 +339,21 @@ export default function Home() {
       .order('date', { ascending: false })
     const entries = data || []
     setRecentEntries(entries)
-    loadOrFetchOneliner(entries)
+    loadOrFetchBriefing(entries)
   }
 
-  async function loadOrFetchOneliner(entries) {
+  async function loadOrFetchBriefing(entries) {
     try {
-      const cacheKey = 'oneliner'
-      const cacheTimeKey = 'oneliner_time'
+      const cacheKey = 'briefing_v2'
+      const cacheTimeKey = 'briefing_v2_time'
       const cached = localStorage.getItem(cacheKey)
       const cachedTime = localStorage.getItem(cacheTimeKey)
       const sixHours = 6 * 60 * 60 * 1000
 
       if (cached && cachedTime && Date.now() - Number(cachedTime) < sixHours) {
-        setLastInsight(cached)
+        const parsed = JSON.parse(cached)
+        setLastInsight(parsed.oneliner)
+        setWhatsHot(parsed.whatsHot)
         return
       }
 
@@ -417,9 +365,10 @@ export default function Home() {
         body: JSON.stringify({ entries }),
       })
       const json = await res.json()
-      if (json.oneliner) {
+      if (json.oneliner || json.whatsHot) {
         setLastInsight(json.oneliner)
-        localStorage.setItem(cacheKey, json.oneliner)
+        setWhatsHot(json.whatsHot)
+        localStorage.setItem(cacheKey, JSON.stringify(json))
         localStorage.setItem(cacheTimeKey, String(Date.now()))
       }
     } catch {}
@@ -428,7 +377,7 @@ export default function Home() {
   const exerciseStreak = (() => {
     let streak = 0
     for (let i = 0; i < recentEntries.length; i++) {
-      if (recentEntries[i].exercise_level > 0) streak++
+      if ((recentEntries[i].exercise_level || 0) > 0) streak++
       else break
     }
     return streak
@@ -442,8 +391,7 @@ export default function Home() {
   const handleSave = async () => {
     setSaving(true); setError(null)
     try {
-      const { error } = await supabase
-        .from('entries').upsert([form], { onConflict: 'date' })
+      const { error } = await supabase.from('entries').upsert([form], { onConflict: 'date' })
       if (error) throw error
       setSaved(true)
       setTodayEntry(form)
@@ -463,51 +411,33 @@ export default function Home() {
       `,
       paddingBottom: '7rem',
     }}>
-
-      {/* Header */}
       <div style={{ padding: 'calc(3.5rem + env(safe-area-inset-top,0px)) 1.25rem 1rem' }}>
-        <p style={{
-          fontSize: '10px', fontWeight: '400',
-          color: 'rgba(255,255,255,0.25)',
-          letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: '6px',
-        }}>
+        <p style={{ fontSize: '10px', fontWeight: '400', color: 'rgba(255,255,255,0.25)', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: '6px' }}>
           {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
         </p>
-        <h1 style={{
-          fontSize: '28px', fontWeight: '300',
-          letterSpacing: '-0.04em', color: 'rgba(255,255,255,0.88)', lineHeight: 1.1,
-        }}>Daily Check-in</h1>
+        <h1 style={{ fontSize: '28px', fontWeight: '300', letterSpacing: '-0.04em', color: 'rgba(255,255,255,0.88)', lineHeight: 1.1 }}>Daily Check-in</h1>
       </div>
 
-      {/* Briefing strip */}
       <BriefingStrip
-        todayEntry={todayEntry}
         recentEntries={recentEntries}
         lastInsight={lastInsight}
+        whatsHot={whatsHot}
         exerciseStreak={exerciseStreak}
       />
 
       <div style={{ padding: '0 1.1rem', maxWidth: '680px', margin: '0 auto' }}>
 
-        {/* Existing entry banner */}
         {todayEntry && lastSavedTime && (
           <div style={{
-            background: 'rgba(129,140,248,0.08)',
-            border: '1px solid rgba(129,140,248,0.18)',
-            borderRadius: '12px', padding: '10px 14px',
-            marginBottom: '8px',
+            background: 'rgba(129,140,248,0.08)', border: '1px solid rgba(129,140,248,0.18)',
+            borderRadius: '12px', padding: '10px 14px', marginBottom: '8px',
             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
           }}>
-            <span style={{ fontSize: '11px', fontWeight: '400', color: 'rgba(196,181,253,0.7)', letterSpacing: '-0.01em' }}>
-              Continuing today's entry
-            </span>
-            <span style={{ fontSize: '11px', color: 'rgba(129,140,248,0.5)', fontWeight: '300' }}>
-              last saved {lastSavedTime}
-            </span>
+            <span style={{ fontSize: '11px', fontWeight: '400', color: 'rgba(196,181,253,0.7)', letterSpacing: '-0.01em' }}>Continuing today's entry</span>
+            <span style={{ fontSize: '11px', color: 'rgba(129,140,248,0.5)', fontWeight: '300' }}>last saved {lastSavedTime}</span>
           </div>
         )}
 
-        {/* Date */}
         <div style={{
           background: 'linear-gradient(160deg, rgba(255,255,255,0.035) 0%, rgba(255,255,255,0.012) 100%)',
           backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)',
@@ -517,79 +447,62 @@ export default function Home() {
           boxShadow: '0 1px 2px rgba(0,0,0,0.25), 0 4px 12px rgba(0,0,0,0.12)',
         }}>
           <span style={{ fontSize: '10px', fontWeight: '400', color: 'rgba(255,255,255,0.25)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>Date</span>
-          <input type="date" value={form.date}
-            onChange={e => handleChange('date', e.target.value)}
-            style={{
-              background: 'transparent', border: 'none',
-              color: 'rgba(255,255,255,0.6)', fontSize: '13px', fontWeight: '300',
-              cursor: 'pointer', outline: 'none',
-              fontFamily: 'Inter, sans-serif', letterSpacing: '-0.01em',
-            }}
+          <input type="date" value={form.date} onChange={e => handleChange('date', e.target.value)}
+            style={{ background: 'transparent', border: 'none', color: 'rgba(255,255,255,0.6)', fontSize: '13px', fontWeight: '300', cursor: 'pointer', outline: 'none', fontFamily: 'Inter, sans-serif', letterSpacing: '-0.01em' }}
           />
         </div>
 
-        {/* Toggles */}
         <div style={{ display: 'flex', gap: '6px', marginBottom: '4px', flexWrap: 'wrap' }}>
           <Toggle label="ADHD Meds"   name="adhd_meds"   value={form.adhd_meds}   onChange={handleChange} Icon={Pill} />
           <Toggle label="Mindfulness" name="mindfulness" value={form.mindfulness} onChange={handleChange} Icon={Wind} />
         </div>
 
-        {/* Sleep */}
         <Section title="Sleep" accent={PALETTE.sleep_hours.line} Icon={Moon}>
           <MetricSlider label="Hours slept"   name="sleep_hours"   value={form.sleep_hours}   onChange={handleChange} min={0} max={12} touched={touched.sleep_hours} />
           <MetricSlider label="Sleep quality" name="sleep_quality" value={form.sleep_quality} onChange={handleChange} min={1} max={10} touched={touched.sleep_quality} />
         </Section>
 
-        {/* Morning */}
         <Section title="Morning" accent={PALETTE.morning_quality.line} Icon={Sunrise}>
           <MetricSlider label="Morning quality" name="morning_quality" value={form.morning_quality} onChange={handleChange} min={1} max={10} touched={touched.morning_quality} />
         </Section>
 
-        {/* Energy */}
         <Section title="Energy & Focus" accent={PALETTE.caffeine_level.line} Icon={Zap}>
           <MetricSlider label="Caffeine"   name="caffeine_level" value={form.caffeine_level} onChange={handleChange} min={0} max={5}  touched={touched.caffeine_level} />
           <MetricSlider label="Focus"      name="focus"          value={form.focus}          onChange={handleChange} min={1} max={10} touched={touched.focus} />
           <MetricSlider label="Motivation" name="motivation"     value={form.motivation}     onChange={handleChange} min={1} max={10} touched={touched.motivation} />
         </Section>
 
-        {/* Wellbeing */}
         <Section title="Wellbeing" accent={PALETTE.happiness.line} Icon={Heart}>
           <MetricSlider label="Happiness" name="happiness" value={form.happiness} onChange={handleChange} min={1} max={10} touched={touched.happiness} />
           <MetricSlider label="Stress"    name="stress"    value={form.stress}    onChange={handleChange} min={1} max={10} touched={touched.stress} />
         </Section>
 
-        {/* Body */}
         <Section title="Body" accent={PALETTE.exercise_level.line} Icon={Dumbbell}>
-          <MetricSlider label="Exercise" name="exercise_level" value={form.exercise_level} onChange={handleChange} min={0} max={3} customLabel={v => EXERCISE_LABELS[v]} touched={touched.exercise_level} />
-          <MetricSlider label="Alcohol"  name="alcohol"        value={form.alcohol}        onChange={handleChange} min={0} max={5} touched={touched.alcohol} />
+          <MetricSlider label="Exercise"  name="exercise_level" value={form.exercise_level} onChange={handleChange} min={0} max={3}  customLabel={v => EXERCISE_LABELS[v]} touched={touched.exercise_level} />
+          <MetricSlider label="BrainRot"  name="brain_rot"      value={form.brain_rot}      onChange={handleChange} min={0} max={8}  touched={touched.brain_rot} />
+          <MetricSlider label="Alcohol"   name="alcohol"        value={form.alcohol}        onChange={handleChange} min={0} max={5}  touched={touched.alcohol} />
         </Section>
 
-        {/* Work & Relationships */}
         <Section title="Work & Relationships" accent={PALETTE.work_stress.line} Icon={Briefcase}>
           <MetricSlider label="Work stress"  name="work_stress"       value={form.work_stress}       onChange={handleChange} min={1} max={10} touched={touched.work_stress} />
           <MetricSlider label="Relationship" name="wife_relationship"  value={form.wife_relationship}  onChange={handleChange} min={1} max={10} touched={touched.wife_relationship} />
         </Section>
 
-        {/* Note */}
         <Section title="Note" accent="rgba(255,255,255,0.3)" Icon={NotebookPen}>
           <textarea
-            value={form.note}
-            onChange={e => handleChange('note', e.target.value)}
-            placeholder="Anything on your mind today…"
-            rows={3}
+            value={form.note} onChange={e => handleChange('note', e.target.value)}
+            placeholder="Anything on your mind today…" rows={3}
             style={{
               width: '100%', background: 'rgba(255,255,255,0.025)',
               border: '1px solid rgba(255,255,255,0.05)', borderRadius: '10px',
               padding: '12px 14px', color: 'rgba(255,255,255,0.65)',
               fontSize: '13px', fontWeight: '300', lineHeight: '1.65',
               resize: 'none', outline: 'none',
-              fontFamily: 'Inter, sans-serif', letterSpacing: '-0.005em',
-              marginBottom: '8px',
+              fontFamily: 'Inter, sans-serif', letterSpacing: '-0.005em', marginBottom: '8px',
             }}
           />
         </Section>
 
-        {/* Save */}
         <button onClick={handleSave} disabled={saving} style={{
           width: '100%', padding: '15px', borderRadius: '14px', border: 'none',
           background: saved
@@ -603,22 +516,16 @@ export default function Home() {
             : '0 0 0 1px rgba(109,96,192,0.35), 0 4px 20px rgba(79,70,229,0.2), inset 0 1px 0 rgba(255,255,255,0.08)',
           position: 'relative', overflow: 'hidden',
         }}>
-          <div style={{
-            position: 'absolute', top: 0, left: 0, right: 0, height: '1px',
-            background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent)',
-          }} />
+          <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '1px', background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent)' }} />
           {saving ? 'Saving…' : saved ? '✓  Saved' : 'Save Check-in'}
         </button>
 
         {error && (
-          <div style={{
-            marginTop: '8px', padding: '12px 14px', borderRadius: '12px',
-            background: 'rgba(248,113,113,0.06)', border: '1px solid rgba(248,113,113,0.15)',
-            color: 'rgba(252,165,165,0.8)', fontSize: '12px', fontWeight: '300',
-          }}>⚠ {error}</div>
+          <div style={{ marginTop: '8px', padding: '12px 14px', borderRadius: '12px', background: 'rgba(248,113,113,0.06)', border: '1px solid rgba(248,113,113,0.15)', color: 'rgba(252,165,165,0.8)', fontSize: '12px', fontWeight: '300' }}>
+            ⚠ {error}
+          </div>
         )}
       </div>
-
       <NavBar active="/" />
     </main>
   )
