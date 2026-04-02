@@ -1,15 +1,15 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { supabase } from './lib/supabase'
 import {
   Pill, Moon, Zap, Heart, Briefcase,
   NotebookPen, LayoutDashboard, ClipboardList,
   Sparkles, Download, PenLine, Wind,
-  Coffee, Sunrise, Dumbbell, Wine
+  Sunrise, Dumbbell, ChevronRight, Flame, TrendingUp
 } from 'lucide-react'
 
-const defaultForm = {
+const DEFAULT_FORM = {
   date: new Date().toISOString().split('T')[0],
   sleep_hours: 7,
   sleep_quality: 7,
@@ -29,21 +29,27 @@ const defaultForm = {
 }
 
 const PALETTE = {
-  sleep_hours:      { line: '#818cf8', glow: 'rgba(129,140,248,0.3)' },
-  sleep_quality:    { line: '#818cf8', glow: 'rgba(129,140,248,0.3)' },
-  caffeine_level:   { line: '#f59e0b', glow: 'rgba(245,158,11,0.3)'  },
-  focus:            { line: '#f59e0b', glow: 'rgba(245,158,11,0.3)'  },
-  motivation:       { line: '#f59e0b', glow: 'rgba(245,158,11,0.3)'  },
-  happiness:        { line: '#34d399', glow: 'rgba(52,211,153,0.3)'  },
-  stress:           { line: '#f87171', glow: 'rgba(248,113,113,0.3)' },
-  work_stress:      { line: '#60a5fa', glow: 'rgba(96,165,250,0.3)'  },
-  wife_relationship:{ line: '#f472b6', glow: 'rgba(244,114,182,0.3)' },
-  morning_quality:  { line: '#fcd34d', glow: 'rgba(252,211,77,0.3)'  },
-  alcohol:          { line: '#c084fc', glow: 'rgba(192,132,252,0.3)' },
-  exercise_level:   { line: '#34d399', glow: 'rgba(52,211,153,0.3)'  },
+  sleep_hours:       { line: '#818cf8', glow: 'rgba(129,140,248,0.3)' },
+  sleep_quality:     { line: '#818cf8', glow: 'rgba(129,140,248,0.3)' },
+  caffeine_level:    { line: '#f59e0b', glow: 'rgba(245,158,11,0.3)'  },
+  focus:             { line: '#f59e0b', glow: 'rgba(245,158,11,0.3)'  },
+  motivation:        { line: '#f59e0b', glow: 'rgba(245,158,11,0.3)'  },
+  happiness:         { line: '#34d399', glow: 'rgba(52,211,153,0.3)'  },
+  stress:            { line: '#f87171', glow: 'rgba(248,113,113,0.3)' },
+  work_stress:       { line: '#60a5fa', glow: 'rgba(96,165,250,0.3)'  },
+  wife_relationship: { line: '#f472b6', glow: 'rgba(244,114,182,0.3)' },
+  morning_quality:   { line: '#fcd34d', glow: 'rgba(252,211,77,0.3)'  },
+  alcohol:           { line: '#c084fc', glow: 'rgba(192,132,252,0.3)' },
+  exercise_level:    { line: '#34d399', glow: 'rgba(52,211,153,0.3)'  },
 }
 
 const EXERCISE_LABELS = ['Sedentary', 'Light', 'Moderate', 'Full workout']
+
+const SLIDER_FIELDS = [
+  'sleep_hours','sleep_quality','caffeine_level','focus','motivation',
+  'happiness','stress','work_stress','wife_relationship',
+  'morning_quality','alcohol','exercise_level'
+]
 
 function NavBar({ active }) {
   const links = [
@@ -73,8 +79,7 @@ function NavBar({ active }) {
             alignItems: 'center', gap: '4px',
             textDecoration: 'none', minWidth: '44px',
             color: isActive ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.25)',
-            transition: 'color 0.2s ease',
-            position: 'relative',
+            transition: 'color 0.2s ease', position: 'relative',
           }}>
             {isActive && (
               <div style={{
@@ -94,14 +99,127 @@ function NavBar({ active }) {
   )
 }
 
-function MetricSlider({ label, name, value, onChange, min = 1, max = 10, customLabel }) {
+function BriefingStrip({ todayEntry, recentEntries, lastInsight, exerciseStreak }) {
+  const avg = (key) => {
+    const vals = recentEntries.map(e => e[key]).filter(v => v != null)
+    if (!vals.length) return null
+    return (vals.reduce((a, b) => a + b, 0) / vals.length).toFixed(1)
+  }
+
+  const cards = [
+    {
+      key: 'status',
+      content: (
+        <div style={{ padding: '14px 16px' }}>
+          <div style={{ fontSize: '9px', color: 'rgba(255,255,255,0.25)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '6px' }}>Today</div>
+          <div style={{ fontSize: '22px', fontWeight: '200', color: 'rgba(255,255,255,0.8)', letterSpacing: '-0.04em', lineHeight: 1 }}>
+            {todayEntry ? 'In progress' : 'Not started'}
+          </div>
+          <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.25)', marginTop: '4px' }}>
+            {todayEntry ? 'Tap to continue' : 'Log your day below'}
+          </div>
+        </div>
+      )
+    },
+    exerciseStreak > 1 && {
+      key: 'streak',
+      content: (
+        <div style={{ padding: '14px 16px' }}>
+          <div style={{ fontSize: '9px', color: 'rgba(255,255,255,0.25)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '6px' }}>Streak</div>
+          <div style={{ display: 'flex', alignItems: 'flex-end', gap: '4px' }}>
+            <div style={{ fontSize: '36px', fontWeight: '200', color: '#f59e0b', letterSpacing: '-0.04em', lineHeight: 1, textShadow: '0 0 20px rgba(245,158,11,0.4)' }}>{exerciseStreak}</div>
+            <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.3)', paddingBottom: '4px' }}>days active</div>
+          </div>
+        </div>
+      )
+    },
+    recentEntries.length >= 3 && {
+      key: 'week',
+      content: (
+        <div style={{ padding: '14px 16px' }}>
+          <div style={{ fontSize: '9px', color: 'rgba(255,255,255,0.25)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '8px' }}>7-Day Avg</div>
+          <div style={{ display: 'flex', gap: '12px' }}>
+            {[
+              { label: 'Mood',  key: 'happiness',  color: '#34d399' },
+              { label: 'Focus', key: 'focus',       color: '#818cf8' },
+              { label: 'Sleep', key: 'sleep_hours', color: '#60a5fa' },
+            ].map(m => (
+              <div key={m.key} style={{ textAlign: 'center' }}>
+                <div style={{ fontSize: '22px', fontWeight: '200', color: m.color, letterSpacing: '-0.04em', lineHeight: 1, textShadow: `0 0 16px ${m.color}60` }}>{avg(m.key) || '—'}</div>
+                <div style={{ fontSize: '8px', color: 'rgba(255,255,255,0.2)', textTransform: 'uppercase', letterSpacing: '0.05em', marginTop: '2px' }}>{m.label}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )
+    },
+    lastInsight && {
+      key: 'insight',
+      content: (
+        <div style={{ padding: '14px 16px', maxWidth: '220px' }}>
+          <div style={{ fontSize: '9px', color: 'rgba(255,255,255,0.25)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '6px' }}>Latest Insight</div>
+          <div style={{ fontSize: '12px', fontWeight: '300', color: 'rgba(255,255,255,0.6)', lineHeight: 1.5, letterSpacing: '-0.01em' }}>"{lastInsight}"</div>
+        </div>
+      )
+    },
+    {
+      key: 'cta',
+      content: (
+        <a href="/insights" style={{
+          padding: '14px 16px', textDecoration: 'none',
+          display: 'flex', flexDirection: 'column', justifyContent: 'center',
+          height: '100%',
+        }}>
+          <div style={{ fontSize: '9px', color: 'rgba(255,255,255,0.25)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '6px' }}>AI Insights</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+            <span style={{ fontSize: '12px', fontWeight: '400', color: '#818cf8' }}>View full report</span>
+            <ChevronRight size={12} color="#818cf8" />
+          </div>
+        </a>
+      )
+    },
+  ].filter(Boolean)
+
+  return (
+    <div style={{
+      overflowX: 'auto', overflowY: 'hidden',
+      display: 'flex', gap: '8px',
+      padding: '0 1.1rem 0',
+      marginBottom: '8px',
+      scrollbarWidth: 'none',
+      WebkitOverflowScrolling: 'touch',
+    }}>
+      {cards.map(card => (
+        <div key={card.key} style={{
+          flexShrink: 0,
+          minWidth: '140px',
+          height: '90px',
+          background: 'linear-gradient(160deg, rgba(255,255,255,0.042) 0%, rgba(255,255,255,0.018) 100%)',
+          backdropFilter: 'blur(24px) saturate(1.4)',
+          WebkitBackdropFilter: 'blur(24px) saturate(1.4)',
+          borderRadius: '16px',
+          border: '1px solid rgba(255,255,255,0.07)',
+          position: 'relative', overflow: 'hidden',
+          boxShadow: '0 1px 2px rgba(0,0,0,0.35), 0 4px 16px rgba(0,0,0,0.2)',
+        }}>
+          <div style={{
+            position: 'absolute', top: 0, left: 0, right: 0, height: '1px',
+            background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.12) 30%, rgba(255,255,255,0.05) 100%)',
+          }} />
+          {card.content}
+        </div>
+      ))}
+      <div style={{ flexShrink: 0, width: '4px' }} />
+    </div>
+  )
+}
+
+function MetricSlider({ label, name, value, onChange, min = 1, max = 10, customLabel, touched }) {
   const pal = PALETTE[name] || { line: '#818cf8', glow: 'rgba(129,140,248,0.3)' }
   const pct = ((value - min) / (max - min)) * 100
   const track = `linear-gradient(to right,
-    ${pal.line} 0%,
-    ${pal.line} ${pct}%,
-    rgba(255,255,255,0.07) ${pct}%,
-    rgba(255,255,255,0.07) 100%
+    ${pal.line} 0%, ${pal.line} ${pct}%,
+    rgba(255,255,255,0.07) ${pct}%, rgba(255,255,255,0.07) 100%
   )`
   const displayValue = customLabel
     ? customLabel(value)
@@ -115,33 +233,32 @@ function MetricSlider({ label, name, value, onChange, min = 1, max = 10, customL
       }}>
         <span style={{
           fontSize: '11px', fontWeight: '400',
-          color: 'rgba(255,255,255,0.35)',
+          color: touched ? 'rgba(255,255,255,0.7)' : 'rgba(255,255,255,0.28)',
           letterSpacing: '0.04em', textTransform: 'uppercase',
+          transition: 'color 0.3s ease',
         }}>{label}</span>
         <span style={{
           fontSize: customLabel ? '16px' : '36px',
           fontWeight: '200',
-          color: pal.line,
-          letterSpacing: '-0.04em',
-          lineHeight: 1,
-          textShadow: `0 0 30px ${pal.glow}`,
-          transition: 'all 0.1s ease',
+          color: touched ? pal.line : `${pal.line}88`,
+          letterSpacing: '-0.04em', lineHeight: 1,
+          textShadow: touched ? `0 0 30px ${pal.glow}` : 'none',
+          transition: 'all 0.3s ease',
           fontVariantNumeric: 'tabular-nums',
         }}>{displayValue}</span>
       </div>
-      <div style={{ position: 'relative', padding: '4px 0' }}>
-        <input
-          type="range" min={min} max={max} step="1"
-          value={value}
-          onChange={e => onChange(name, Number(e.target.value))}
-          style={{
-            width: '100%', height: '6px',
-            borderRadius: '99px', outline: 'none',
-            cursor: 'pointer', background: track,
-            WebkitAppearance: 'none', appearance: 'none',
-          }}
-        />
-      </div>
+      <input
+        type="range" min={min} max={max} step="1"
+        value={value}
+        onChange={e => onChange(name, Number(e.target.value))}
+        style={{
+          width: '100%', height: '6px', borderRadius: '99px',
+          outline: 'none', cursor: 'pointer', background: track,
+          WebkitAppearance: 'none', appearance: 'none',
+          opacity: touched ? 1 : 0.6,
+          transition: 'opacity 0.3s ease',
+        }}
+      />
       <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '4px' }}>
         <span style={{ fontSize: '9px', color: 'rgba(255,255,255,0.15)', fontWeight: '300' }}>{min}</span>
         <span style={{ fontSize: '9px', color: 'rgba(255,255,255,0.15)', fontWeight: '300' }}>{max}</span>
@@ -154,16 +271,12 @@ function Toggle({ label, name, value, onChange, Icon }) {
   return (
     <button onClick={() => onChange(name, !value)} style={{
       display: 'flex', alignItems: 'center', gap: '10px',
-      padding: '14px 16px', flex: 1,
-      borderRadius: '16px',
-      border: value
-        ? '1px solid rgba(129,140,248,0.35)'
-        : '1px solid rgba(255,255,255,0.06)',
+      padding: '14px 16px', flex: 1, borderRadius: '16px',
+      border: value ? '1px solid rgba(129,140,248,0.35)' : '1px solid rgba(255,255,255,0.06)',
       background: value
         ? 'linear-gradient(160deg, rgba(129,140,248,0.14) 0%, rgba(79,70,229,0.06) 100%)'
         : 'linear-gradient(160deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.01) 100%)',
-      backdropFilter: 'blur(12px)',
-      WebkitBackdropFilter: 'blur(12px)',
+      backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)',
       cursor: 'pointer', transition: 'all 0.2s ease',
       boxShadow: value
         ? '0 1px 2px rgba(0,0,0,0.3), 0 4px 16px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.07)'
@@ -183,12 +296,10 @@ function Toggle({ label, name, value, onChange, Icon }) {
         letterSpacing: '-0.01em', transition: 'color 0.2s ease',
       }}>{label}</span>
       <div style={{
-        marginLeft: 'auto',
-        width: '16px', height: '16px', borderRadius: '50%',
+        marginLeft: 'auto', width: '16px', height: '16px', borderRadius: '50%',
         border: value ? 'none' : '1px solid rgba(255,255,255,0.15)',
         background: value ? 'linear-gradient(145deg, #9d8df5, #6d60c0)' : 'transparent',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        flexShrink: 0,
+        display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
         boxShadow: value ? '0 0 10px rgba(124,111,205,0.6)' : 'none',
         transition: 'all 0.2s ease',
       }}>
@@ -224,8 +335,7 @@ function Section({ title, accent, Icon, children }) {
         background: 'linear-gradient(160deg, rgba(255,255,255,0.042) 0%, rgba(255,255,255,0.018) 100%)',
         backdropFilter: 'blur(24px) saturate(1.4)',
         WebkitBackdropFilter: 'blur(24px) saturate(1.4)',
-        borderRadius: '18px',
-        padding: '20px 18px 8px',
+        borderRadius: '18px', padding: '20px 18px 8px',
         border: '1px solid rgba(255,255,255,0.07)',
         position: 'relative', overflow: 'hidden',
         boxShadow: '0 1px 2px rgba(0,0,0,0.35), 0 4px 16px rgba(0,0,0,0.2), 0 16px 48px rgba(0,0,0,0.1)',
@@ -245,25 +355,89 @@ function Section({ title, accent, Icon, children }) {
 }
 
 export default function Home() {
-  const [form, setForm] = useState(defaultForm)
-  const [saving, setSaving] = useState(false)
-  const [saved, setSaved] = useState(false)
-  const [error, setError] = useState(null)
-  const [yesterday, setYesterday] = useState(null)
+  const [form, setForm]       = useState({ ...DEFAULT_FORM })
+  const [touched, setTouched] = useState({})
+  const [saving, setSaving]   = useState(false)
+  const [saved, setSaved]     = useState(false)
+  const [error, setError]     = useState(null)
+  const [todayEntry, setTodayEntry]       = useState(null)
+  const [recentEntries, setRecentEntries] = useState([])
+  const [lastInsight, setLastInsight]     = useState(null)
+  const [lastSavedTime, setLastSavedTime] = useState(null)
 
-  useEffect(() => { fetchYesterday() }, [])
+  useEffect(() => {
+    fetchToday()
+    fetchRecent()
+  }, [])
 
-  async function fetchYesterday() {
-    const d = new Date()
-    d.setDate(d.getDate() - 1)
+  async function fetchToday() {
+    const today = new Date().toISOString().split('T')[0]
     const { data } = await supabase
-      .from('entries').select('*')
-      .eq('date', d.toISOString().split('T')[0]).single()
-    if (data) setYesterday(data)
+      .from('entries').select('*').eq('date', today).single()
+    if (data) {
+      setTodayEntry(data)
+      setForm(data)
+      setLastSavedTime(new Date(data.created_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }))
+      const touchedFields = {}
+      SLIDER_FIELDS.forEach(f => { touchedFields[f] = true })
+      setTouched(touchedFields)
+    }
   }
 
-  const handleChange = (name, value) =>
+  async function fetchRecent() {
+    const from = new Date()
+    from.setDate(from.getDate() - 7)
+    const { data } = await supabase
+      .from('entries').select('*')
+      .gte('date', from.toISOString().split('T')[0])
+      .order('date', { ascending: false })
+    const entries = data || []
+    setRecentEntries(entries)
+    loadOrFetchOneliner(entries)
+  }
+
+  async function loadOrFetchOneliner(entries) {
+    try {
+      const cacheKey = 'oneliner'
+      const cacheTimeKey = 'oneliner_time'
+      const cached = localStorage.getItem(cacheKey)
+      const cachedTime = localStorage.getItem(cacheTimeKey)
+      const sixHours = 6 * 60 * 60 * 1000
+
+      if (cached && cachedTime && Date.now() - Number(cachedTime) < sixHours) {
+        setLastInsight(cached)
+        return
+      }
+
+      if (!entries || entries.length < 3) return
+
+      const res = await fetch('/api/oneliner', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ entries }),
+      })
+      const json = await res.json()
+      if (json.oneliner) {
+        setLastInsight(json.oneliner)
+        localStorage.setItem(cacheKey, json.oneliner)
+        localStorage.setItem(cacheTimeKey, String(Date.now()))
+      }
+    } catch {}
+  }
+
+  const exerciseStreak = (() => {
+    let streak = 0
+    for (let i = 0; i < recentEntries.length; i++) {
+      if (recentEntries[i].exercise_level > 0) streak++
+      else break
+    }
+    return streak
+  })()
+
+  const handleChange = (name, value) => {
     setForm(prev => ({ ...prev, [name]: value }))
+    setTouched(prev => ({ ...prev, [name]: true }))
+  }
 
   const handleSave = async () => {
     setSaving(true); setError(null)
@@ -272,17 +446,12 @@ export default function Home() {
         .from('entries').upsert([form], { onConflict: 'date' })
       if (error) throw error
       setSaved(true)
+      setTodayEntry(form)
+      setLastSavedTime(new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }))
       setTimeout(() => setSaved(false), 3000)
     } catch (err) { setError(err.message) }
     finally { setSaving(false) }
   }
-
-  const miniStats = yesterday ? [
-    { label: 'Mood',   value: yesterday.happiness,       color: PALETTE.happiness.line        },
-    { label: 'Focus',  value: yesterday.focus,            color: PALETTE.focus.line            },
-    { label: 'Sleep',  value: `${yesterday.sleep_hours}h`,color: PALETTE.sleep_hours.line      },
-    { label: 'Stress', value: yesterday.stress,           color: PALETTE.stress.line           },
-  ] : null
 
   return (
     <main style={{
@@ -295,61 +464,46 @@ export default function Home() {
       paddingBottom: '7rem',
     }}>
 
-      <div style={{
-        padding: 'calc(3.5rem + env(safe-area-inset-top,0px)) 1.25rem 1.25rem',
-      }}>
+      {/* Header */}
+      <div style={{ padding: 'calc(3.5rem + env(safe-area-inset-top,0px)) 1.25rem 1rem' }}>
         <p style={{
           fontSize: '10px', fontWeight: '400',
           color: 'rgba(255,255,255,0.25)',
-          letterSpacing: '0.08em', textTransform: 'uppercase',
-          marginBottom: '6px',
+          letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: '6px',
         }}>
           {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
         </p>
         <h1 style={{
           fontSize: '28px', fontWeight: '300',
-          letterSpacing: '-0.04em',
-          color: 'rgba(255,255,255,0.88)', lineHeight: 1.1,
+          letterSpacing: '-0.04em', color: 'rgba(255,255,255,0.88)', lineHeight: 1.1,
         }}>Daily Check-in</h1>
       </div>
 
+      {/* Briefing strip */}
+      <BriefingStrip
+        todayEntry={todayEntry}
+        recentEntries={recentEntries}
+        lastInsight={lastInsight}
+        exerciseStreak={exerciseStreak}
+      />
+
       <div style={{ padding: '0 1.1rem', maxWidth: '680px', margin: '0 auto' }}>
 
-        {/* Yesterday strip */}
-        {miniStats && (
+        {/* Existing entry banner */}
+        {todayEntry && lastSavedTime && (
           <div style={{
-            background: 'linear-gradient(160deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.015) 100%)',
-            backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)',
-            borderRadius: '14px', padding: '12px 16px', marginBottom: '8px',
-            border: '1px solid rgba(255,255,255,0.06)',
-            display: 'flex', alignItems: 'center',
-            boxShadow: '0 1px 2px rgba(0,0,0,0.3), 0 4px 16px rgba(0,0,0,0.15)',
-            position: 'relative', overflow: 'hidden',
+            background: 'rgba(129,140,248,0.08)',
+            border: '1px solid rgba(129,140,248,0.18)',
+            borderRadius: '12px', padding: '10px 14px',
+            marginBottom: '8px',
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
           }}>
-            <div style={{
-              position: 'absolute', top: 0, left: 0, right: 0, height: '0.5px',
-              background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent)',
-            }} />
-            <span style={{
-              fontSize: '9px', fontWeight: '400',
-              color: 'rgba(255,255,255,0.2)',
-              textTransform: 'uppercase', letterSpacing: '0.08em',
-              marginRight: '16px', whiteSpace: 'nowrap',
-            }}>Yesterday</span>
-            {miniStats.map(s => (
-              <div key={s.label} style={{ flex: 1, textAlign: 'center' }}>
-                <div style={{
-                  fontSize: '22px', fontWeight: '200',
-                  color: s.color, letterSpacing: '-0.04em', lineHeight: 1.1,
-                  textShadow: `0 0 20px ${s.color}60`,
-                }}>{s.value}</div>
-                <div style={{
-                  fontSize: '8px', fontWeight: '400',
-                  color: 'rgba(255,255,255,0.2)',
-                  textTransform: 'uppercase', letterSpacing: '0.06em', marginTop: '2px',
-                }}>{s.label}</div>
-              </div>
-            ))}
+            <span style={{ fontSize: '11px', fontWeight: '400', color: 'rgba(196,181,253,0.7)', letterSpacing: '-0.01em' }}>
+              Continuing today's entry
+            </span>
+            <span style={{ fontSize: '11px', color: 'rgba(129,140,248,0.5)', fontWeight: '300' }}>
+              last saved {lastSavedTime}
+            </span>
           </div>
         )}
 
@@ -376,57 +530,44 @@ export default function Home() {
 
         {/* Toggles */}
         <div style={{ display: 'flex', gap: '6px', marginBottom: '4px', flexWrap: 'wrap' }}>
-          <Toggle label="ADHD Meds"   name="adhd_meds"   value={form.adhd_meds}   onChange={handleChange} Icon={Pill}  />
-          <Toggle label="Mindfulness" name="mindfulness" value={form.mindfulness} onChange={handleChange} Icon={Wind}  />
+          <Toggle label="ADHD Meds"   name="adhd_meds"   value={form.adhd_meds}   onChange={handleChange} Icon={Pill} />
+          <Toggle label="Mindfulness" name="mindfulness" value={form.mindfulness} onChange={handleChange} Icon={Wind} />
         </div>
 
         {/* Sleep */}
         <Section title="Sleep" accent={PALETTE.sleep_hours.line} Icon={Moon}>
-          <MetricSlider label="Hours slept"   name="sleep_hours"   value={form.sleep_hours}   onChange={handleChange} min={0} max={12} />
-          <MetricSlider label="Sleep quality" name="sleep_quality" value={form.sleep_quality} onChange={handleChange} min={1} max={10} />
+          <MetricSlider label="Hours slept"   name="sleep_hours"   value={form.sleep_hours}   onChange={handleChange} min={0} max={12} touched={touched.sleep_hours} />
+          <MetricSlider label="Sleep quality" name="sleep_quality" value={form.sleep_quality} onChange={handleChange} min={1} max={10} touched={touched.sleep_quality} />
         </Section>
 
         {/* Morning */}
         <Section title="Morning" accent={PALETTE.morning_quality.line} Icon={Sunrise}>
-          <MetricSlider label="Morning quality" name="morning_quality" value={form.morning_quality} onChange={handleChange} min={1} max={10} />
+          <MetricSlider label="Morning quality" name="morning_quality" value={form.morning_quality} onChange={handleChange} min={1} max={10} touched={touched.morning_quality} />
         </Section>
 
         {/* Energy */}
         <Section title="Energy & Focus" accent={PALETTE.caffeine_level.line} Icon={Zap}>
-          <MetricSlider label="Caffeine"   name="caffeine_level" value={form.caffeine_level} onChange={handleChange} min={0} max={5} />
-          <MetricSlider label="Focus"      name="focus"          value={form.focus}          onChange={handleChange} min={1} max={10} />
-          <MetricSlider label="Motivation" name="motivation"     value={form.motivation}     onChange={handleChange} min={1} max={10} />
+          <MetricSlider label="Caffeine"   name="caffeine_level" value={form.caffeine_level} onChange={handleChange} min={0} max={5}  touched={touched.caffeine_level} />
+          <MetricSlider label="Focus"      name="focus"          value={form.focus}          onChange={handleChange} min={1} max={10} touched={touched.focus} />
+          <MetricSlider label="Motivation" name="motivation"     value={form.motivation}     onChange={handleChange} min={1} max={10} touched={touched.motivation} />
         </Section>
 
         {/* Wellbeing */}
         <Section title="Wellbeing" accent={PALETTE.happiness.line} Icon={Heart}>
-          <MetricSlider label="Happiness" name="happiness" value={form.happiness} onChange={handleChange} min={1} max={10} />
-          <MetricSlider label="Stress"    name="stress"    value={form.stress}    onChange={handleChange} min={1} max={10} />
+          <MetricSlider label="Happiness" name="happiness" value={form.happiness} onChange={handleChange} min={1} max={10} touched={touched.happiness} />
+          <MetricSlider label="Stress"    name="stress"    value={form.stress}    onChange={handleChange} min={1} max={10} touched={touched.stress} />
         </Section>
 
         {/* Body */}
         <Section title="Body" accent={PALETTE.exercise_level.line} Icon={Dumbbell}>
-          <MetricSlider
-            label="Exercise"
-            name="exercise_level"
-            value={form.exercise_level}
-            onChange={handleChange}
-            min={0} max={3}
-            customLabel={v => EXERCISE_LABELS[v]}
-          />
-          <MetricSlider
-            label="Alcohol"
-            name="alcohol"
-            value={form.alcohol}
-            onChange={handleChange}
-            min={0} max={5}
-          />
+          <MetricSlider label="Exercise" name="exercise_level" value={form.exercise_level} onChange={handleChange} min={0} max={3} customLabel={v => EXERCISE_LABELS[v]} touched={touched.exercise_level} />
+          <MetricSlider label="Alcohol"  name="alcohol"        value={form.alcohol}        onChange={handleChange} min={0} max={5} touched={touched.alcohol} />
         </Section>
 
         {/* Work & Relationships */}
         <Section title="Work & Relationships" accent={PALETTE.work_stress.line} Icon={Briefcase}>
-          <MetricSlider label="Work stress"  name="work_stress"      value={form.work_stress}      onChange={handleChange} min={1} max={10} />
-          <MetricSlider label="Relationship" name="wife_relationship" value={form.wife_relationship} onChange={handleChange} min={1} max={10} />
+          <MetricSlider label="Work stress"  name="work_stress"       value={form.work_stress}       onChange={handleChange} min={1} max={10} touched={touched.work_stress} />
+          <MetricSlider label="Relationship" name="wife_relationship"  value={form.wife_relationship}  onChange={handleChange} min={1} max={10} touched={touched.wife_relationship} />
         </Section>
 
         {/* Note */}
@@ -437,11 +578,9 @@ export default function Home() {
             placeholder="Anything on your mind today…"
             rows={3}
             style={{
-              width: '100%',
-              background: 'rgba(255,255,255,0.025)',
-              border: '1px solid rgba(255,255,255,0.05)',
-              borderRadius: '10px', padding: '12px 14px',
-              color: 'rgba(255,255,255,0.65)',
+              width: '100%', background: 'rgba(255,255,255,0.025)',
+              border: '1px solid rgba(255,255,255,0.05)', borderRadius: '10px',
+              padding: '12px 14px', color: 'rgba(255,255,255,0.65)',
               fontSize: '13px', fontWeight: '300', lineHeight: '1.65',
               resize: 'none', outline: 'none',
               fontFamily: 'Inter, sans-serif', letterSpacing: '-0.005em',
@@ -456,11 +595,9 @@ export default function Home() {
           background: saved
             ? 'linear-gradient(135deg, rgba(52,211,153,0.9) 0%, rgba(5,150,105,0.85) 100%)'
             : 'linear-gradient(135deg, rgba(109,96,192,0.95) 0%, rgba(79,70,229,0.9) 100%)',
-          color: 'rgba(255,255,255,0.92)',
-          fontSize: '13px', fontWeight: '400', letterSpacing: '0.01em',
-          cursor: saving ? 'not-allowed' : 'pointer',
-          opacity: saving ? 0.5 : 1, transition: 'all 0.25s ease',
-          marginTop: '8px',
+          color: 'rgba(255,255,255,0.92)', fontSize: '13px', fontWeight: '400',
+          letterSpacing: '0.01em', cursor: saving ? 'not-allowed' : 'pointer',
+          opacity: saving ? 0.5 : 1, transition: 'all 0.25s ease', marginTop: '8px',
           boxShadow: saved
             ? '0 0 0 1px rgba(52,211,153,0.25), 0 4px 20px rgba(52,211,153,0.15), inset 0 1px 0 rgba(255,255,255,0.1)'
             : '0 0 0 1px rgba(109,96,192,0.35), 0 4px 20px rgba(79,70,229,0.2), inset 0 1px 0 rgba(255,255,255,0.08)',
@@ -476,8 +613,7 @@ export default function Home() {
         {error && (
           <div style={{
             marginTop: '8px', padding: '12px 14px', borderRadius: '12px',
-            background: 'rgba(248,113,113,0.06)',
-            border: '1px solid rgba(248,113,113,0.15)',
+            background: 'rgba(248,113,113,0.06)', border: '1px solid rgba(248,113,113,0.15)',
             color: 'rgba(252,165,165,0.8)', fontSize: '12px', fontWeight: '300',
           }}>⚠ {error}</div>
         )}
