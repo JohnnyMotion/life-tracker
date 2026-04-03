@@ -91,8 +91,7 @@ export default function Insights() {
       const { data: entries } = await supabase
         .from('entries')
         .select('*')
-        .order('date', { ascending: false })
-        .limit(30)
+        .order('date', { ascending: true })
 
       const res = await fetch('/api/insights', {
         method: 'POST',
