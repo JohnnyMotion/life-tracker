@@ -331,12 +331,9 @@ export default function Home() {
   }
 
   async function fetchRecent() {
-    const from = new Date()
-    from.setDate(from.getDate() - 7)
     const { data } = await supabase
       .from('entries').select('*')
-      .gte('date', from.toISOString().split('T')[0])
-      .order('date', { ascending: false })
+      .order('date', { ascending: true })
     const entries = data || []
     setRecentEntries(entries)
     loadOrFetchBriefing(entries)
