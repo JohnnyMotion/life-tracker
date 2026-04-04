@@ -2,38 +2,52 @@
 
 import { useState } from 'react'
 import { supabase } from '../lib/supabase'
+import { LayoutDashboard, ClipboardList, Sparkles, Download, PenLine } from 'lucide-react'
 
 function NavBar({ active }) {
   const links = [
-    { href: '/', label: 'Check-in', emoji: '✏️' },
-    { href: '/dashboard', label: 'Dashboard', emoji: '📊' },
-    { href: '/history', label: 'History', emoji: '📋' },
-    { href: '/insights', label: 'Insights', emoji: '🧠' },
+    { href: '/',          label: 'Log',       Icon: PenLine         },
+    { href: '/dashboard', label: 'Dashboard', Icon: LayoutDashboard },
+    { href: '/history',   label: 'History',   Icon: ClipboardList   },
+    { href: '/insights',  label: 'Insights',  Icon: Sparkles        },
+    { href: '/export',    label: 'Export',    Icon: Download        },
   ]
   return (
     <nav style={{
-      position: 'fixed',
-      bottom: 0, left: 0, right: 0,
-      background: 'rgba(15,15,20,0.95)',
-      borderTop: '1px solid rgba(255,255,255,0.08)',
-      display: 'flex',
-      justifyContent: 'space-around',
+      position: 'fixed', bottom: 0, left: 0, right: 0,
+      background: 'rgba(7,7,15,0.88)',
+      borderTop: '0.5px solid rgba(255,255,255,0.07)',
+      display: 'flex', justifyContent: 'space-around',
       paddingTop: '14px',
       paddingBottom: 'calc(16px + env(safe-area-inset-bottom, 20px))',
-      backdropFilter: 'blur(20px)',
+      backdropFilter: 'blur(40px) saturate(1.8)',
+      WebkitBackdropFilter: 'blur(40px) saturate(1.8)',
       zIndex: 100,
     }}>
-      {links.map(link => (
-        <a key={link.href} href={link.href} style={{
-          display: 'flex', flexDirection: 'column',
-          alignItems: 'center', gap: '0.25rem',
-          color: active === link.href ? '#818cf8' : '#64748b',
-          textDecoration: 'none',
-        }}>
-          <span style={{ fontSize: '1.4rem' }}>{link.emoji}</span>
-          <span style={{ fontSize: '0.7rem', fontWeight: '600' }}>{link.label}</span>
-        </a>
-      ))}
+      {links.map(({ href, label, Icon }) => {
+        const isActive = active === href
+        return (
+          <a key={href} href={href} style={{
+            display: 'flex', flexDirection: 'column',
+            alignItems: 'center', gap: '4px',
+            textDecoration: 'none', minWidth: '44px',
+            color: isActive ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.25)',
+            transition: 'color 0.2s ease', position: 'relative',
+          }}>
+            {isActive && (
+              <div style={{
+                position: 'absolute', top: '-10px',
+                left: '50%', transform: 'translateX(-50%)',
+                width: '28px', height: '2px',
+                background: 'linear-gradient(90deg, transparent, #818cf8, transparent)',
+                borderRadius: '99px',
+              }} />
+            )}
+            <Icon size={18} strokeWidth={isActive ? 1.75 : 1.5} />
+            <span style={{ fontSize: '9px', fontWeight: isActive ? '500' : '400', letterSpacing: '0.03em' }}>{label}</span>
+          </a>
+        )
+      })}
     </nav>
   )
 }
@@ -54,10 +68,7 @@ export default function Export() {
   const [done, setDone] = useState(null)
 
   async function fetchAll() {
-    const { data } = await supabase
-      .from('entries')
-      .select('*')
-      .order('date', { ascending: true })
+    const { data } = await supabase.from('entries').select('*').order('date', { ascending: true })
     return data || []
   }
 
@@ -99,37 +110,36 @@ export default function Export() {
   return (
     <main style={{
       minHeight: '100vh',
-      background: 'linear-gradient(135deg, #0f0f14 0%, #131320 50%, #0f0f14 100%)',
-      paddingBottom: '5rem',
+      background: `
+        radial-gradient(ellipse 90% 55% at 10% -5%, rgba(88,66,160,0.2) 0%, transparent 65%),
+        radial-gradient(ellipse 60% 40% at 90% 8%, rgba(20,50,120,0.15) 0%, transparent 65%),
+        #07070f
+      `,
+      paddingBottom: '7rem',
     }}>
-      <div style={{
-        background: 'rgba(255,255,255,0.03)',
-        borderBottom: '1px solid rgba(255,255,255,0.06)',
-        padding: '1.5rem 1.5rem 1rem',
-        position: 'sticky', top: 0, zIndex: 10,
-        backdropFilter: 'blur(20px)',
-      }}>
-        <h1 style={{
-          fontSize: '1.5rem', fontWeight: '700',
-          background: 'linear-gradient(135deg, #34d399, #818cf8)',
-          WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
-        }}>Export Data</h1>
-        <p style={{ color: '#475569', fontSize: '0.85rem', marginTop: '0.25rem' }}>
-          Download all your entries
+      <div style={{ padding: 'calc(3.5rem + env(safe-area-inset-top,0px)) 1.25rem 1rem' }}>
+        <p style={{ fontSize: '10px', fontWeight: '400', color: 'rgba(255,255,255,0.25)', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: '6px' }}>
+          Your data
         </p>
+        <h1 style={{ fontSize: '28px', fontWeight: '300', letterSpacing: '-0.04em', color: 'rgba(255,255,255,0.88)', lineHeight: 1.1 }}>Export</h1>
       </div>
 
-      <div style={{ padding: '1.5rem', maxWidth: '680px', margin: '0 auto' }}>
+      <div style={{ padding: '0 1.1rem', maxWidth: '680px', margin: '0 auto' }}>
 
         {/* Info card */}
         <div style={{
-          background: 'rgba(255,255,255,0.04)',
-          borderRadius: '20px',
-          padding: '1.25rem',
-          marginBottom: '1.5rem',
-          border: '1px solid rgba(255,255,255,0.06)',
+          background: 'linear-gradient(160deg, rgba(255,255,255,0.042) 0%, rgba(255,255,255,0.018) 100%)',
+          backdropFilter: 'blur(24px) saturate(1.4)',
+          WebkitBackdropFilter: 'blur(24px) saturate(1.4)',
+          borderRadius: '18px', padding: '18px',
+          marginBottom: '12px',
+          border: '1px solid rgba(255,255,255,0.07)',
+          position: 'relative', overflow: 'hidden',
+          boxShadow: '0 1px 2px rgba(0,0,0,0.35), 0 4px 16px rgba(0,0,0,0.2)',
         }}>
-          <p style={{ color: '#94a3b8', fontSize: '0.9rem', lineHeight: '1.6' }}>
+          <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '1px', background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.12) 30%, rgba(255,255,255,0.05) 100%)' }} />
+          <div style={{ position: 'absolute', top: 0, left: 0, width: '1px', height: '50%', background: 'linear-gradient(180deg, rgba(255,255,255,0.12), transparent)' }} />
+          <p style={{ fontSize: '13px', fontWeight: '300', color: 'rgba(255,255,255,0.45)', lineHeight: '1.65', letterSpacing: '-0.005em' }}>
             Your data belongs to you. Export it anytime as JSON (great for backups) or CSV (opens in Excel or Google Sheets).
           </p>
         </div>
@@ -139,23 +149,20 @@ export default function Export() {
           onClick={handleExportJSON}
           disabled={loading}
           style={{
-            width: '100%',
-            padding: '1.1rem',
-            borderRadius: '16px',
-            border: 'none',
+            width: '100%', padding: '15px', borderRadius: '14px', border: 'none',
             background: done === 'json'
-              ? 'linear-gradient(135deg, #34d399, #059669)'
-              : 'linear-gradient(135deg, #818cf8, #c084fc)',
-            color: 'white',
-            fontSize: '1.05rem',
-            fontWeight: '700',
-            cursor: loading ? 'not-allowed' : 'pointer',
-            opacity: loading ? 0.7 : 1,
-            transition: 'all 0.3s ease',
-            marginBottom: '0.75rem',
-          }}
-        >
-          {done === 'json' ? `✓ Downloaded ${entryCount} entries as JSON` : '⬇ Export as JSON'}
+              ? 'linear-gradient(135deg, rgba(52,211,153,0.9) 0%, rgba(5,150,105,0.85) 100%)'
+              : 'linear-gradient(135deg, rgba(109,96,192,0.95) 0%, rgba(79,70,229,0.9) 100%)',
+            color: 'rgba(255,255,255,0.92)', fontSize: '13px', fontWeight: '400',
+            letterSpacing: '0.01em', cursor: loading ? 'not-allowed' : 'pointer',
+            opacity: loading ? 0.5 : 1, transition: 'all 0.25s ease', marginBottom: '8px',
+            boxShadow: done === 'json'
+              ? '0 0 0 1px rgba(52,211,153,0.25), 0 4px 20px rgba(52,211,153,0.15), inset 0 1px 0 rgba(255,255,255,0.1)'
+              : '0 0 0 1px rgba(109,96,192,0.35), 0 4px 20px rgba(79,70,229,0.2), inset 0 1px 0 rgba(255,255,255,0.08)',
+            position: 'relative', overflow: 'hidden',
+          }}>
+          <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '1px', background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent)' }} />
+          {done === 'json' ? `✓  Downloaded ${entryCount} entries as JSON` : 'Export as JSON'}
         </button>
 
         {/* CSV button */}
@@ -163,31 +170,30 @@ export default function Export() {
           onClick={handleExportCSV}
           disabled={loading}
           style={{
-            width: '100%',
-            padding: '1.1rem',
-            borderRadius: '16px',
-            border: '1px solid rgba(255,255,255,0.1)',
+            width: '100%', padding: '15px', borderRadius: '14px',
+            border: done === 'csv' ? 'none' : '1px solid rgba(255,255,255,0.07)',
             background: done === 'csv'
-              ? 'linear-gradient(135deg, #34d399, #059669)'
-              : 'rgba(255,255,255,0.04)',
-            color: done === 'csv' ? 'white' : '#94a3b8',
-            fontSize: '1.05rem',
-            fontWeight: '700',
+              ? 'linear-gradient(135deg, rgba(52,211,153,0.9) 0%, rgba(5,150,105,0.85) 100%)'
+              : 'linear-gradient(160deg, rgba(255,255,255,0.035) 0%, rgba(255,255,255,0.012) 100%)',
+            color: done === 'csv' ? 'rgba(255,255,255,0.92)' : 'rgba(255,255,255,0.4)',
+            fontSize: '13px', fontWeight: '400', letterSpacing: '0.01em',
             cursor: loading ? 'not-allowed' : 'pointer',
-            opacity: loading ? 0.7 : 1,
-            transition: 'all 0.3s ease',
-          }}
-        >
-          {done === 'csv' ? `✓ Downloaded ${entryCount} entries as CSV` : '⬇ Export as CSV'}
+            opacity: loading ? 0.5 : 1, transition: 'all 0.25s ease',
+            boxShadow: done === 'csv'
+              ? '0 0 0 1px rgba(52,211,153,0.25), 0 4px 20px rgba(52,211,153,0.15), inset 0 1px 0 rgba(255,255,255,0.1)'
+              : '0 1px 2px rgba(0,0,0,0.25), 0 4px 12px rgba(0,0,0,0.12)',
+            position: 'relative', overflow: 'hidden',
+          }}>
+          {done === 'csv' && <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '1px', background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent)' }} />}
+          {done === 'csv' ? `✓  Downloaded ${entryCount} entries as CSV` : 'Export as CSV'}
         </button>
 
         <p style={{
-          textAlign: 'center',
-          color: '#334155',
-          fontSize: '0.8rem',
-          marginTop: '1.5rem',
+          textAlign: 'center', color: 'rgba(255,255,255,0.1)',
+          fontSize: '10px', fontWeight: '300',
+          marginTop: '16px', letterSpacing: '0.03em', textTransform: 'uppercase',
         }}>
-          Exports include all fields for every entry you've logged.
+          Includes all fields for every entry
         </p>
       </div>
 
