@@ -284,9 +284,9 @@ function BriefingStrip({ recentEntries, lastInsight, whatsHot, exerciseStreak, b
     <div
       style={{
         position: 'relative',
+        overflow: 'hidden',
         marginBottom: '8px',
-        // Reserve space for canvas when no cards are loaded yet
-        minHeight: !cards.length && canvasVisible ? '90px' : 'auto',
+        minHeight: canvasVisible ? '90px' : 'auto',
       }}
       onMouseMove={handleMouseMove}
       onTouchMove={handleTouchMove}
@@ -299,8 +299,9 @@ function BriefingStrip({ recentEntries, lastInsight, whatsHot, exerciseStreak, b
           ref={canvasRef}
           style={{
             position: 'absolute', top: 0, left: 0,
-            width: '100%', height: '110px',
+            width: '100%', height: '100%',
             display: 'block', pointerEvents: 'none',
+            zIndex: 0,
           }}
         />
       )}
@@ -313,7 +314,7 @@ function BriefingStrip({ recentEntries, lastInsight, whatsHot, exerciseStreak, b
           padding: '0 1.1rem',
           scrollbarWidth: 'none',
           WebkitOverflowScrolling: 'touch',
-          position: 'relative',
+          position: 'relative', zIndex: 1,
         }}>
           {cards.map((card, index) => (
             <div key={card.key} style={{
