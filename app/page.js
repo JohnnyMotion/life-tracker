@@ -66,8 +66,8 @@ function NavBar({ active }) {
       background: 'rgba(7,7,15,0.88)',
       borderTop: '0.5px solid rgba(255,255,255,0.07)',
       display: 'flex', justifyContent: 'space-around',
-      paddingTop: '10px',
-      paddingBottom: 'calc(10px + env(safe-area-inset-bottom, 16px))',
+      paddingTop: '14px',
+      paddingBottom: 'calc(16px + env(safe-area-inset-bottom, 20px))',
       backdropFilter: 'blur(40px) saturate(1.8)',
       WebkitBackdropFilter: 'blur(40px) saturate(1.8)',
       zIndex: 100,
@@ -276,7 +276,7 @@ function Toggle({ label, name, value, onChange, Icon }) {
   )
 }
 
-function Section({ title, accent, Icon, children }) {
+function Section({ title, accent, Icon, tint, children }) {
   return (
     <div style={{ marginBottom: '6px' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '20px 0 12px' }}>
@@ -285,7 +285,9 @@ function Section({ title, accent, Icon, children }) {
         <div style={{ flex: 1, height: '0.5px', background: `linear-gradient(to right, ${accent}30, transparent)` }} />
       </div>
       <div style={{
-        background: 'linear-gradient(160deg, rgba(255,255,255,0.042) 0%, rgba(255,255,255,0.018) 100%)',
+        background: tint
+          ? `linear-gradient(160deg, ${tint} 0%, transparent 100%), linear-gradient(160deg, rgba(255,255,255,0.042) 0%, rgba(255,255,255,0.018) 100%)`
+          : 'linear-gradient(160deg, rgba(255,255,255,0.042) 0%, rgba(255,255,255,0.018) 100%)',
         backdropFilter: 'blur(24px) saturate(1.4)', WebkitBackdropFilter: 'blur(24px) saturate(1.4)',
         borderRadius: '18px', padding: '20px 18px 8px',
         border: '1px solid rgba(255,255,255,0.07)',
@@ -454,38 +456,38 @@ export default function Home() {
           <Toggle label="Mindfulness" name="mindfulness" value={form.mindfulness} onChange={handleChange} Icon={Wind} />
         </div>
 
-        <Section title="Sleep" accent={PALETTE.sleep_hours.line} Icon={Moon}>
+        <Section title="Sleep" accent={PALETTE.sleep_hours.line} Icon={Moon} tint="rgba(129,140,248,0.055)">
           <MetricSlider label="Hours slept"   name="sleep_hours"   value={form.sleep_hours}   onChange={handleChange} min={0} max={12} touched={touched.sleep_hours} />
           <MetricSlider label="Sleep quality" name="sleep_quality" value={form.sleep_quality} onChange={handleChange} min={1} max={10} touched={touched.sleep_quality} />
         </Section>
 
-        <Section title="Morning" accent={PALETTE.morning_quality.line} Icon={Sunrise}>
+        <Section title="Morning" accent={PALETTE.morning_quality.line} Icon={Sunrise} tint="rgba(252,211,77,0.045)">
           <MetricSlider label="Morning quality" name="morning_quality" value={form.morning_quality} onChange={handleChange} min={1} max={10} touched={touched.morning_quality} />
         </Section>
 
-        <Section title="Energy & Focus" accent={PALETTE.caffeine_level.line} Icon={Zap}>
+        <Section title="Energy & Focus" accent={PALETTE.caffeine_level.line} Icon={Zap} tint="rgba(245,158,11,0.05)">
           <MetricSlider label="Caffeine"   name="caffeine_level" value={form.caffeine_level} onChange={handleChange} min={0} max={5}  touched={touched.caffeine_level} />
           <MetricSlider label="Focus"      name="focus"          value={form.focus}          onChange={handleChange} min={1} max={10} touched={touched.focus} />
           <MetricSlider label="Motivation" name="motivation"     value={form.motivation}     onChange={handleChange} min={1} max={10} touched={touched.motivation} />
         </Section>
 
-        <Section title="Wellbeing" accent={PALETTE.happiness.line} Icon={Heart}>
+        <Section title="Wellbeing" accent={PALETTE.happiness.line} Icon={Heart} tint="rgba(52,211,153,0.05)">
           <MetricSlider label="Happiness" name="happiness" value={form.happiness} onChange={handleChange} min={1} max={10} touched={touched.happiness} />
           <MetricSlider label="Stress"    name="stress"    value={form.stress}    onChange={handleChange} min={1} max={10} touched={touched.stress} />
         </Section>
 
-        <Section title="Body" accent={PALETTE.exercise_level.line} Icon={Dumbbell}>
+        <Section title="Body" accent={PALETTE.exercise_level.line} Icon={Dumbbell} tint="rgba(52,211,153,0.04)">
           <MetricSlider label="Exercise"  name="exercise_level" value={form.exercise_level} onChange={handleChange} min={0} max={3}  customLabel={v => EXERCISE_LABELS[v]} touched={touched.exercise_level} />
           <MetricSlider label="BrainRot"  name="brain_rot"      value={form.brain_rot}      onChange={handleChange} min={0} max={8}  touched={touched.brain_rot} />
           <MetricSlider label="Alcohol"   name="alcohol"        value={form.alcohol}        onChange={handleChange} min={0} max={5}  touched={touched.alcohol} />
         </Section>
 
-        <Section title="Work & Relationships" accent={PALETTE.work_stress.line} Icon={Briefcase}>
+        <Section title="Work & Relationships" accent={PALETTE.work_stress.line} Icon={Briefcase} tint="rgba(96,165,250,0.055)">
           <MetricSlider label="Work stress"  name="work_stress"       value={form.work_stress}       onChange={handleChange} min={1} max={10} touched={touched.work_stress} />
           <MetricSlider label="Relationship" name="wife_relationship"  value={form.wife_relationship}  onChange={handleChange} min={1} max={10} touched={touched.wife_relationship} />
         </Section>
 
-        <Section title="Note" accent="rgba(255,255,255,0.3)" Icon={NotebookPen}>
+        <Section title="Note" accent="rgba(255,255,255,0.3)" Icon={NotebookPen} tint="rgba(255,255,255,0.025)">
           <textarea
             value={form.note} onChange={e => handleChange('note', e.target.value)}
             placeholder="Anything on your mind today…" rows={3}

@@ -43,7 +43,8 @@ function NavBar({ active }) {
       borderTop: '1px solid rgba(255,255,255,0.08)',
       display: 'flex',
       justifyContent: 'space-around',
-      padding: '0.75rem 0 1.25rem',
+      paddingTop: '14px',
+      paddingBottom: 'calc(16px + env(safe-area-inset-bottom, 20px))',
       backdropFilter: 'blur(20px)',
       zIndex: 100,
     }}>
