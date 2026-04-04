@@ -9,8 +9,13 @@ import {
   Sunrise, Dumbbell, ChevronRight, TrendingUp, TrendingDown, Minus, Brain
 } from 'lucide-react'
 
+function localToday() {
+  const d = new Date()
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0')
+}
+
 const DEFAULT_FORM = {
-  date: new Date().toISOString().split('T')[0],
+  date: localToday(),
   sleep_hours: 7,
   sleep_quality: 7,
   adhd_meds: false,
@@ -135,7 +140,7 @@ function BriefingStrip({ recentEntries, lastInsight, whatsHot, exerciseStreak, b
       let progress = 0
       if (dissolvingRef.current) {
         if (!dissolveStartRef.current) dissolveStartRef.current = ts
-        progress = Math.min(1, (ts - dissolveStartRef.current) / 800)
+        progress = Math.min(1, (ts - dissolveStartRef.current) / 4000)
       }
 
       for (let i = 0; i < particles.length; i++) {
@@ -180,17 +185,12 @@ function BriefingStrip({ recentEntries, lastInsight, whatsHot, exerciseStreak, b
         const sp = Math.sqrt(p.vx * p.vx + p.vy * p.vy)
         if (sp > 0.3) { p.vx = (p.vx / sp) * 0.3; p.vy = (p.vy / sp) * 0.3 }
 
-        // Dissolution: drift upward
-        if (dissolvingRef.current) p.vy -= 0.05
-
         p.x += p.vx
         p.y += p.vy
 
-        // Edge wrap (only when not dissolving)
-        if (!dissolvingRef.current) {
-          if (p.x < 0) p.x += W; else if (p.x > W) p.x -= W
-          if (p.y < 0) p.y += H; else if (p.y > H) p.y -= H
-        }
+        // Edge wrap — always
+        if (p.x < 0) p.x += W; else if (p.x > W) p.x -= W
+        if (p.y < 0) p.y += H; else if (p.y > H) p.y -= H
 
         // Draw
         const alpha = 0.18 * (1 - progress)
@@ -216,8 +216,8 @@ function BriefingStrip({ recentEntries, lastInsight, whatsHot, exerciseStreak, b
     dissolvingRef.current = true
     // Cards: render invisible first, animate in next frame
     requestAnimationFrame(() => setCardsAnimated(true))
-    // Canvas: hide after dissolution completes
-    setTimeout(() => setCanvasVisible(false), 900)
+    // Canvas: hide after ambient fade completes
+    setTimeout(() => setCanvasVisible(false), 4400)
   }, [briefingLoaded])
 
   // ── Mouse / touch tracking (on outer container, bubbles from cards row) ─────
@@ -482,7 +482,7 @@ export default function Home() {
   }, [])
 
   async function fetchToday() {
-    const today = new Date().toISOString().split('T')[0]
+    const today = localToday()
     const { data } = await supabase.from('entries').select('*').eq('date', today).single()
     if (data) {
       setTodayEntry(data)
