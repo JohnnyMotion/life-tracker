@@ -112,6 +112,8 @@ function BriefingStrip({ recentEntries, lastInsight, whatsHot, exerciseStreak, b
   const mouseRef         = useRef({ x: -999, y: -999 })
   const dissolvingRef    = useRef(false)
   const dissolveStartRef = useRef(null)
+  const saberCanvasRef   = useRef(null)
+  const saberRafRef      = useRef(null)
 
   const [canvasVisible, setCanvasVisible] = useState(true)
   const [cardsAnimated, setCardsAnimated] = useState(false)
@@ -210,15 +212,107 @@ function BriefingStrip({ recentEntries, lastInsight, whatsHot, exerciseStreak, b
     return () => { if (rafRef.current) cancelAnimationFrame(rafRef.current) }
   }, [])
 
-  // ── Dissolution + card entrance when data arrives ───────────────────────────
+  // ── Saber stroke animation ──────────────────────────────────────────────────
+  function runSaber() {
+    const canvas = saberCanvasRef.current
+    if (!canvas) return
+    const W = canvas.width  = canvas.offsetWidth
+    const H = canvas.height = canvas.offsetHeight
+    if (!W || !H) return
+
+    const r      = 16
+    const perim  = 2 * (W + H - 4 * r) + 2 * Math.PI * r
+    const easeIn = t => t * t * t          // cubic ease-in
+    const DURATION = 900
+    const FADE_OUT = 400
+    const STEPS    = 5                     // tail gradient steps per layer
+    let startTime  = null
+
+    function rrPath(ctx) {
+      ctx.beginPath()
+      ctx.moveTo(r, 0)
+      ctx.lineTo(W - r, 0);  ctx.arcTo(W, 0, W, r, r)
+      ctx.lineTo(W, H - r);  ctx.arcTo(W, H, W - r, H, r)
+      ctx.lineTo(r, H);      ctx.arcTo(0, H, 0, H - r, r)
+      ctx.lineTo(0, r);      ctx.arcTo(0, 0, r, 0, r)
+      ctx.closePath()
+    }
+
+    function seg(ctx, start, len, lw, color, blur) {
+      if (len < 0.5) return
+      ctx.save()
+      ctx.filter     = `blur(${blur}px)`
+      ctx.strokeStyle = color
+      ctx.lineWidth   = lw
+      ctx.lineCap     = 'round'
+      ctx.lineJoin    = 'round'
+      ctx.setLineDash([len, perim + 1])
+      ctx.lineDashOffset = -start
+      rrPath(ctx)
+      ctx.stroke()
+      ctx.restore()
+    }
+
+    function drawFrame(ctx, arcLen, mo) {
+      ctx.clearRect(0, 0, W, H)
+      if (arcLen <= 0 || mo <= 0) return
+
+      const tailLen   = Math.min(arcLen, perim * 0.25)
+      const tailStart = arcLen - tailLen
+
+      // Stepped tail → each step is one opaque slice, creating gradient feel
+      for (let s = 0; s < STEPS; s++) {
+        const ss = tailStart + (tailLen * s / STEPS)
+        const sl = tailLen / STEPS
+        const sa = (s + 1) / STEPS * mo
+
+        // Outer glow layer
+        seg(ctx, ss, sl, 16, `rgba(129,140,248,${(0.2 * sa).toFixed(3)})`, 16)
+        // Inner glow layer
+        seg(ctx, ss, sl,  8, `rgba(129,140,248,${(0.6 * sa).toFixed(3)})`,  8)
+      }
+
+      // Head — small bright tip at leading edge
+      const headLen   = Math.min(arcLen, perim * 0.05)
+      const headStart = arcLen - headLen
+      seg(ctx, headStart, headLen, 3, `rgba(255,255,255,${(0.95 * mo).toFixed(3)})`, 4)
+    }
+
+    function frame(ts) {
+      if (!startTime) startTime = ts
+      const elapsed = ts - startTime
+      const ctx = canvas.getContext('2d')
+
+      if (elapsed < DURATION) {
+        drawFrame(ctx, easeIn(Math.min(1, elapsed / DURATION)) * perim, 1)
+        saberRafRef.current = requestAnimationFrame(frame)
+      } else if (elapsed < DURATION + FADE_OUT) {
+        const mo = 1 - (elapsed - DURATION) / FADE_OUT
+        drawFrame(ctx, perim, mo)
+        saberRafRef.current = requestAnimationFrame(frame)
+      } else {
+        ctx.clearRect(0, 0, W, H)
+      }
+    }
+
+    saberRafRef.current = requestAnimationFrame(frame)
+  }
+
+  // ── Dissolution + card entrance + saber when data arrives ──────────────────
   useEffect(() => {
     if (!briefingLoaded) return
     dissolvingRef.current = true
-    // Cards: render invisible first, animate in next frame
-    requestAnimationFrame(() => setCardsAnimated(true))
-    // Canvas: hide after ambient fade completes
     setTimeout(() => setCanvasVisible(false), 4400)
+    requestAnimationFrame(() => {
+      setCardsAnimated(true)
+      runSaber()
+    })
   }, [briefingLoaded])
+
+  // ── Saber cleanup on unmount ────────────────────────────────────────────────
+  useEffect(() => {
+    return () => { if (saberRafRef.current) cancelAnimationFrame(saberRafRef.current) }
+  }, [])
 
   // ── Mouse / touch tracking (on outer container, bubbles from cards row) ─────
   const handleMouseMove = (e) => {
@@ -337,6 +431,16 @@ function BriefingStrip({ recentEntries, lastInsight, whatsHot, exerciseStreak, b
                 position: 'absolute', top: 0, left: 0, right: 0, height: '1px',
                 background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.12) 30%, rgba(255,255,255,0.05) 100%)',
               }} />
+              {card.key === 'insight' && (
+                <canvas
+                  ref={saberCanvasRef}
+                  style={{
+                    position: 'absolute', inset: 0, zIndex: 2,
+                    pointerEvents: 'none', display: 'block',
+                    width: '100%', height: '100%',
+                  }}
+                />
+              )}
               {card.content}
             </div>
           ))}
